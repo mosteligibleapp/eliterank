@@ -62,9 +62,9 @@ export default function useCompetition(competitionId = null) {
         announcementsRes,
       ] = await Promise.all([
         supabase.from('competitions').select('*').eq('id', competitionId).maybeSingle(),
-        supabase.from('contestants').select('*, profile:profiles!user_id(*)').eq('competition_id', competitionId).order('rank'),
+        supabase.from('contestants').select('*, profile:profiles!user_id(id, first_name, last_name, bio, city, avatar_url, instagram, twitter, tiktok, linkedin, website, headline, occupation, age, username, interests, cover_image, gallery, intro_video_url, total_votes_received, total_competitions, wins, best_placement, fan_count, is_host, created_at, updated_at, onboarded_at)').eq('competition_id', competitionId).order('rank'),
         supabase.from('nominees').select('*').eq('competition_id', competitionId).order('created_at', { ascending: false }),
-        supabase.from('judges').select('*, profile:profiles!user_id(*)').eq('competition_id', competitionId).order('sort_order'),
+        supabase.from('judges').select('*, profile:profiles!user_id(id, first_name, last_name, bio, city, avatar_url, instagram, twitter, tiktok, linkedin, website, headline, occupation, age, username, interests, cover_image, gallery, intro_video_url, total_votes_received, total_competitions, wins, best_placement, fan_count, is_host, created_at, updated_at, onboarded_at)').eq('competition_id', competitionId).order('sort_order'),
         supabase.from('sponsors').select('*').eq('competition_id', competitionId).order('sort_order'),
         supabase.from('events').select('*').eq('competition_id', competitionId).order('date'),
         supabase.from('announcements').select('*').eq('competition_id', competitionId).order('pinned', { ascending: false }).order('published_at', { ascending: false }),

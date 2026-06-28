@@ -55,7 +55,7 @@ export default function CityPage() {
         .from('competitions')
         .select(`
           *,
-          organization:organizations(*)
+          organization:organizations(id, name, slug, logo, tagline, description, cover_image, total_competitions, total_cities, total_contestants, created_at, updated_at, logo_url, default_about_tagline, default_about_description, default_about_traits, default_age_range, default_requirement, default_theme_primary, default_theme_voting, default_theme_resurrection, header_logo_url, website_url, org_type, instagram, tiktok, facebook)
         `)
         .eq('city_id', cityData.id)
         .in('status', [COMPETITION_STATUS.PUBLISH, COMPETITION_STATUS.LIVE, COMPETITION_STATUS.COMPLETED])

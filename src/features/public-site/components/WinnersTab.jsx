@@ -34,10 +34,11 @@ export default function WinnersTab({ city, season, winners = [], competitionId, 
             return;
           }
 
-          // Fetch winner profiles with all fields
+          // Fetch winner profiles (public-safe display columns only — the anon
+          // key cannot read PII columns like email/phone/shipping_address).
           const { data: profiles, error: profilesError } = await supabase
             .from('profiles')
-            .select('*')
+            .select('id, first_name, last_name, bio, city, avatar_url, instagram, twitter, tiktok, linkedin, website, headline, occupation, age, username, interests, cover_image, gallery, intro_video_url, total_votes_received, total_competitions, wins, best_placement, fan_count, is_host, created_at, updated_at, onboarded_at')
             .in('id', compData.winners);
 
           if (profilesError || !profiles) {

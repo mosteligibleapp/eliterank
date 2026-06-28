@@ -169,7 +169,7 @@ export function useDemographics() {
 export function useCompetitions(filters = {}) {
   return useCachedQuery({
     table: 'competitions',
-    select: '*, organization:organizations(*), city:cities(*)',
+    select: '*, organization:organizations(id, name, slug, logo, tagline, description, cover_image, total_competitions, total_cities, total_contestants, created_at, updated_at, logo_url, default_about_tagline, default_about_description, default_about_traits, default_age_range, default_requirement, default_theme_primary, default_theme_voting, default_theme_resurrection, header_logo_url, website_url, org_type, instagram, tiktok, facebook), city:cities(*)',
     eq: filters,
     order: { column: 'created_at', ascending: false },
     ttl: 30000,

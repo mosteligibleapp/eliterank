@@ -139,7 +139,7 @@ export default function PublicSitePage({
         // (2x) badge follows the host's calendar day, not UTC. See migration 051.
         const [contestantsResult, eventsResult, announcementsResult, judgesResult, doubleDayResult] = await Promise.all([
           // Join with profiles to get full profile data when contestant is linked to a user
-          supabase.from('contestants').select('*, profile:profiles!user_id(*)').eq('competition_id', competitionId).order('votes', { ascending: false }),
+          supabase.from('contestants').select('*, profile:profiles!user_id(id, first_name, last_name, bio, city, avatar_url, instagram, twitter, tiktok, linkedin, website, headline, occupation, age, username, interests, cover_image, gallery, intro_video_url, total_votes_received, total_competitions, wins, best_placement, fan_count, is_host, created_at, updated_at, onboarded_at)').eq('competition_id', competitionId).order('votes', { ascending: false }),
           supabase.from('events').select('*').eq('competition_id', competitionId).order('date'),
           supabase.from('announcements').select('*').eq('competition_id', competitionId).order('pinned', { ascending: false }).order('published_at', { ascending: false }),
           supabase.rpc('get_competition_judges', { p_competition_id: competitionId }),
@@ -297,7 +297,7 @@ export default function PublicSitePage({
     try {
       const { data: contestantsData } = await supabase
         .from('contestants')
-        .select('*, profile:profiles!user_id(*)')
+        .select('*, profile:profiles!user_id(id, first_name, last_name, bio, city, avatar_url, instagram, twitter, tiktok, linkedin, website, headline, occupation, age, username, interests, cover_image, gallery, intro_video_url, total_votes_received, total_competitions, wins, best_placement, fan_count, is_host, created_at, updated_at, onboarded_at)')
         .eq('competition_id', competitionId)
         .order('votes', { ascending: false });
 

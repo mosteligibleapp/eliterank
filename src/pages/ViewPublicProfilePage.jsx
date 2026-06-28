@@ -45,7 +45,7 @@ export default function ViewPublicProfilePage() {
         const [profileResult, contestantResult, nomineeResult] = await Promise.all([
           supabase
             .from('profiles')
-            .select('*')
+            .select('id, first_name, last_name, bio, city, avatar_url, instagram, twitter, tiktok, linkedin, website, headline, occupation, age, username, interests, cover_image, gallery, intro_video_url, total_votes_received, total_competitions, wins, best_placement, fan_count, is_host, created_at, updated_at, onboarded_at')
             .eq('id', profileId)
             .maybeSingle(),
           supabase
