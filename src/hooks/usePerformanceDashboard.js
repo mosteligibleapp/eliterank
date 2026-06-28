@@ -63,7 +63,7 @@ export function usePerformanceDashboard(userId) {
             season,
             status,
             city:cities(name),
-            organization:organizations(name, slug, logo_url)
+            organization:organizations(name, slug, logo_url, header_logo_url)
           )
         `)
         .eq('user_id', userId)

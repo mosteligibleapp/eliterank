@@ -123,6 +123,9 @@ export default function SetupTab({
   // These public-facing sections only actually lock once the competition is
   // published (publish-lock tier) — show the lock badge only then.
   const publishLocked = !isFieldEditable('nomination_form', competition?.status);
+  // Voting dates lock later than the publish-locked sections — they stay editable
+  // through the entry/nomination phase and only lock once voting opens (live).
+  const votingLocked = !isFieldEditable('voting_start', competition?.status);
 
   // Per-section editability badges so the host knows, at a glance, which
   // sections lock when they publish vs. which stay editable throughout.
@@ -135,6 +138,12 @@ export default function SetupTab({
   const lockBadge = (
     <span style={{ ...badgeBase, background: 'rgba(212,175,55,0.12)', color: colors.gold.primary, border: '1px solid rgba(212,175,55,0.3)' }}>
       <Lock size={11} /> {publishLocked ? 'Locked' : 'Locks at publish'}
+    </span>
+  );
+  // Voting Details lock on a later trigger (voting opens), so its badge differs.
+  const votingLockBadge = (
+    <span style={{ ...badgeBase, background: 'rgba(212,175,55,0.12)', color: colors.gold.primary, border: '1px solid rgba(212,175,55,0.3)' }}>
+      <Lock size={11} /> {votingLocked ? 'Locked' : 'Locks when voting opens'}
     </span>
   );
   const editBadge = (
@@ -204,8 +213,8 @@ export default function SetupTab({
         style={sectionStyle('timeline')}
         title="Voting Details"
         icon={Calendar}
-        locked={publishLocked}
-        badge={lockBadge}
+        locked={votingLocked}
+        badge={votingLockBadge}
         collapsible
         defaultCollapsed={focusId !== 'timeline'}
       >

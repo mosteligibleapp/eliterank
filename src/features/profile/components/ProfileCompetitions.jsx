@@ -3,6 +3,7 @@ import { Trophy, Crown, Award, ArrowRight, ChevronRight, Clock, Mic, Heart } fro
 import { Panel, Badge, Button, EliteRankCrown, OrganizationLogo } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography, styleHelpers } from '../../../styles/theme';
 import { getHostedCompetitions, getContestantCompetitions, getNominationsForUser } from '../../../lib/competition-history';
+import { getOrgLogo } from '../../../lib/storageImage';
 
 import { useResponsive } from '../../../hooks/useResponsive';
 import { useLeaderboard } from '../../../hooks';
@@ -257,6 +258,7 @@ function CompactCompetitionCard({ entry, onAcceptClick, isMobile }) {
   const competition = entry.competition || {};
   const cityName = competition.city?.name || competition.city || '';
   const org = competition.organization;
+  const orgLogo = getOrgLogo(org);
 
   return (
     <a
@@ -284,9 +286,9 @@ function CompactCompetitionCard({ entry, onAcceptClick, isMobile }) {
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Org icon */}
-      {org?.logo_url && (
+      {orgLogo && (
         <OrganizationLogo
-          logo={org.logo_url}
+          logo={orgLogo}
           size={56}
           alt={org?.name || 'Organization'}
         />
@@ -386,6 +388,7 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
   const competition = entry.competition || {};
   const cityName = competition.city?.name || competition.city || '';
   const org = competition.organization;
+  const orgLogo = getOrgLogo(org);
   const url = entry.url;
 
   // Inline voting is only shown for contestant entries during an active
@@ -480,9 +483,9 @@ function CompetitionCard({ entry, onAcceptClick, isMobile, isPreview = false }) 
       >
         {/* Large org logo as its own column, vertically centered and
             sized to match the content stack height. */}
-        {org?.logo_url && (
+        {orgLogo && (
           <OrganizationLogo
-            logo={org.logo_url}
+            logo={orgLogo}
             size={isMobile ? 72 : 84}
             alt={org?.name || 'Organization'}
           />

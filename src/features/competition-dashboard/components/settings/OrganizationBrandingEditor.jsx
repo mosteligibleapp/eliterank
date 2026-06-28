@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Image, Link, Upload, X, Check, Pencil, ExternalLink } from 'lucide-react';
+import { Image, Link, Upload, X, Check, Pencil, ExternalLink, FileText, Instagram, Facebook, Music2 } from 'lucide-react';
 import { supabase } from '../../../../lib/supabase';
 import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
 import { Button, Panel } from '../../../../components/ui';
@@ -14,12 +14,16 @@ import { useToast } from '../../../../contexts/ToastContext';
  * @param {string} currentWebsiteUrl - Current website_url
  * @param {function} onSave - Callback when save completes
  */
-export function OrganizationBrandingEditor({ organizationId, currentHeaderLogoUrl, fallbackLogoUrl, currentWebsiteUrl, onSave }) {
+export function OrganizationBrandingEditor({ organizationId, currentHeaderLogoUrl, fallbackLogoUrl, currentWebsiteUrl, currentLegalEntityName, currentInstagram, currentTiktok, currentFacebook, onSave }) {
   const toast = useToast();
   const fileInputRef = useRef(null);
 
   const [headerLogoUrl, setHeaderLogoUrl] = useState('');
   const [websiteUrl, setWebsiteUrl] = useState('');
+  const [legalEntityName, setLegalEntityName] = useState('');
+  const [instagram, setInstagram] = useState('');
+  const [tiktok, setTiktok] = useState('');
+  const [facebook, setFacebook] = useState('');
   const [editing, setEditing] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -34,11 +38,19 @@ export function OrganizationBrandingEditor({ organizationId, currentHeaderLogoUr
   useEffect(() => {
     setHeaderLogoUrl(seededHeaderLogoUrl);
     setWebsiteUrl(currentWebsiteUrl || '');
-  }, [seededHeaderLogoUrl, currentWebsiteUrl]);
+    setLegalEntityName(currentLegalEntityName || '');
+    setInstagram(currentInstagram || '');
+    setTiktok(currentTiktok || '');
+    setFacebook(currentFacebook || '');
+  }, [seededHeaderLogoUrl, currentWebsiteUrl, currentLegalEntityName, currentInstagram, currentTiktok, currentFacebook]);
 
   const hasChanges = () => {
     return headerLogoUrl !== (currentHeaderLogoUrl || '') ||
-           websiteUrl !== (currentWebsiteUrl || '');
+           websiteUrl !== (currentWebsiteUrl || '') ||
+           legalEntityName !== (currentLegalEntityName || '') ||
+           instagram !== (currentInstagram || '') ||
+           tiktok !== (currentTiktok || '') ||
+           facebook !== (currentFacebook || '');
   };
 
   const handleLogoUpload = async (e) => {
@@ -81,6 +93,10 @@ export function OrganizationBrandingEditor({ organizationId, currentHeaderLogoUr
   const handleCancel = () => {
     setHeaderLogoUrl(seededHeaderLogoUrl);
     setWebsiteUrl(currentWebsiteUrl || '');
+    setLegalEntityName(currentLegalEntityName || '');
+    setInstagram(currentInstagram || '');
+    setTiktok(currentTiktok || '');
+    setFacebook(currentFacebook || '');
     setEditing(false);
   };
 
@@ -93,6 +109,10 @@ export function OrganizationBrandingEditor({ organizationId, currentHeaderLogoUr
         .update({
           header_logo_url: headerLogoUrl || null,
           website_url: websiteUrl.trim() || null,
+          legal_entity_name: legalEntityName.trim() || null,
+          instagram: instagram.trim() || null,
+          tiktok: tiktok.trim() || null,
+          facebook: facebook.trim() || null,
         })
         .eq('id', organizationId);
 
@@ -137,10 +157,10 @@ export function OrganizationBrandingEditor({ organizationId, currentHeaderLogoUr
     },
     hint: {
       fontSize: typography.fontSize.xs,
-      color: colors.text.muted,
+      color: colors.text.secondary,
     },
     uploadZone: {
-      border: `2px dashed ${colors.border.light}`,
+      border: `2px dashed ${colors.border.primary}`,
       borderRadius: borderRadius.lg,
       padding: spacing.xl,
       display: 'flex',
@@ -159,7 +179,7 @@ export function OrganizationBrandingEditor({ organizationId, currentHeaderLogoUr
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      border: `1px solid ${colors.border.lighter}`,
+      border: `1px solid ${colors.border.primary}`,
     },
     previewImage: {
       maxWidth: '280px',
@@ -173,9 +193,9 @@ export function OrganizationBrandingEditor({ organizationId, currentHeaderLogoUr
       width: '28px',
       height: '28px',
       borderRadius: '50%',
-      background: 'rgba(239,68,68,0.15)',
-      border: '1px solid rgba(239,68,68,0.3)',
-      color: '#ef4444',
+      background: colors.status.errorMuted,
+      border: `1px solid ${colors.status.errorMuted}`,
+      color: colors.status.error,
       cursor: 'pointer',
       display: 'flex',
       alignItems: 'center',
@@ -185,12 +205,17 @@ export function OrganizationBrandingEditor({ organizationId, currentHeaderLogoUr
       width: '100%',
       padding: `${spacing.sm} ${spacing.md}`,
       background: colors.background.secondary,
-      border: `1px solid ${colors.border.lighter}`,
+      border: `1px solid ${colors.border.primary}`,
       borderRadius: borderRadius.md,
       color: colors.text.primary,
       fontSize: typography.fontSize.base,
       outline: 'none',
       boxSizing: 'border-box',
+    },
+    socialRow: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: spacing.sm,
     },
     actions: {
       display: 'flex',
@@ -210,7 +235,7 @@ export function OrganizationBrandingEditor({ organizationId, currentHeaderLogoUr
     },
     readValue: {
       margin: 0,
-      color: colors.text.muted,
+      color: colors.text.secondary,
       fontSize: typography.fontSize.sm,
     },
     readLink: {
@@ -330,6 +355,67 @@ export function OrganizationBrandingEditor({ organizationId, currentHeaderLogoUr
           ) : (
             <p style={styles.readValue}>Not set</p>
           )}
+        </div>
+
+        {/* Legal Entity Name */}
+        <div style={styles.fieldGroup}>
+          <label style={styles.label}>
+            <FileText size={14} />
+            Legal Entity Name
+          </label>
+          {editing ? (
+            <>
+              <p style={styles.hint}>
+                Your registered legal entity (e.g. "Acme Events LLC"). Shown as the
+                organizer on your competition's Official Rules. Leave blank to use
+                your organization name.
+              </p>
+              <input
+                type="text"
+                value={legalEntityName}
+                onChange={(e) => setLegalEntityName(e.target.value)}
+                placeholder="e.g. Acme Events LLC"
+                style={styles.input}
+              />
+            </>
+          ) : legalEntityName ? (
+            <p style={styles.readValue}>{legalEntityName}</p>
+          ) : (
+            <p style={styles.readValue}>Not set — your organization name is used</p>
+          )}
+        </div>
+
+        {/* Social Links — shown beneath sponsors on your public competition page */}
+        <div style={styles.fieldGroup}>
+          <label style={styles.label}>
+            <Instagram size={14} />
+            Social Links
+          </label>
+          <p style={styles.hint}>
+            Your handle or full link. These appear beneath your sponsors on the
+            competition page. Leave any blank to hide it.
+          </p>
+          {[
+            { key: 'instagram', label: 'Instagram', Icon: Instagram, value: instagram, set: setInstagram, placeholder: '@yourhandle' },
+            { key: 'tiktok', label: 'TikTok', Icon: Music2, value: tiktok, set: setTiktok, placeholder: '@yourhandle' },
+            { key: 'facebook', label: 'Facebook', Icon: Facebook, value: facebook, set: setFacebook, placeholder: 'yourpage or full URL' },
+          ].map(({ key, label, Icon, value, set, placeholder }) => (
+            <div key={key} style={styles.socialRow}>
+              <Icon size={16} style={{ color: colors.text.muted, flexShrink: 0 }} />
+              {editing ? (
+                <input
+                  type="text"
+                  value={value}
+                  onChange={(e) => set(e.target.value)}
+                  placeholder={`${label} — ${placeholder}`}
+                  aria-label={label}
+                  style={styles.input}
+                />
+              ) : (
+                <span style={styles.readValue}>{value || `${label}: Not set`}</span>
+              )}
+            </div>
+          ))}
         </div>
 
         {/* Save / Cancel */}

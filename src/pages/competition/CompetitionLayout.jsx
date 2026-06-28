@@ -8,8 +8,7 @@ import { AlertCircle, Eye, Loader, X, ArrowLeft } from 'lucide-react';
 import CompetitionSkeleton from '../../components/skeletons/CompetitionSkeleton';
 import { useAuthStore } from '../../stores';
 import { ProfileIcon, NotificationBell } from '../../components/ui';
-import { useIsJudge } from '../../hooks';
-import { isCompetitionInProgress } from '../../utils/competitionPhase';
+import { useIsJudge, useMyPerformance } from '../../hooks';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 
 // Phase view components (lazy-loaded — only the active phase is needed)
@@ -23,9 +22,11 @@ const ResultsPhase = lazy(() => import('./phases/ResultsPhase'));
 const LeaderboardView = lazy(() => import('./views/LeaderboardView'));
 const PrizesView = lazy(() => import('./views/PrizesView'));
 const ContestantView = lazy(() => import('./views/ContestantView'));
+const OfficialRulesView = lazy(() => import('./views/OfficialRulesView'));
 
 // Shared components
 import { CompetitionHeader } from './components/CompetitionHeader';
+import { CompetitionFooter } from './components/CompetitionFooter';
 import VoteModal from '../../features/public-site/components/VoteModal';
 
 // Entry flow (lazy loaded)
@@ -68,12 +69,13 @@ function CompetitionLayoutInner() {
   const hasDashboardAccess = profile?.is_host || profile?.is_super_admin;
   const isJudge = useIsJudge();
 
-  // "How to Win" only shows while the competition is actively running
-  // (nominations → finals); hidden for Coming Soon and Completed. Merge in the
-  // loaded voting rounds so the live sub-phase resolves accurately.
-  const competitionInProgress = isCompetitionInProgress(
-    competition ? { ...competition, voting_rounds: votingRounds } : null,
+  // "How to Win" and "Rewards" only apply while the user is still in the running
+  // (active competition + not eliminated / not finished). Only fetch for users
+  // who are actually contestants, to avoid an extra query for voters.
+  const { performances } = useMyPerformance(
+    profile?.is_nominee_or_contestant ? user?.id : null,
   );
+  const isStillCompeting = performances.some((p) => p.isActive && p.status === 'active');
 
   // Navigation handlers for profile icon
   const handleLogin = () => {
@@ -165,6 +167,7 @@ function CompetitionLayoutInner() {
   const isEntryView = location.pathname.endsWith('/enter');
   const isLeaderboardView = location.pathname.endsWith('/leaderboard');
   const isPrizesView = location.pathname.endsWith('/prizes');
+  const isRulesView = location.pathname.endsWith('/rules');
   const isContestantView = location.pathname.includes('/e/');
 
   // Leaderboard/Activity sub-views are reachable any time the leaderboard
@@ -215,10 +218,10 @@ function CompetitionLayoutInner() {
             onLogin={handleLogin}
             onLogout={handleLogout}
             onProfile={handleProfile}
-            onRewards={profile?.is_nominee_or_contestant ? handleRewards : undefined}
+            onRewards={isStillCompeting ? handleRewards : undefined}
             onAchievements={profile?.is_nominee_or_contestant ? handleAchievements : undefined}
             onAccountSettings={handleAccountSettings}
-            onHowToCompete={profile?.is_nominee_or_contestant && competitionInProgress ? handleHowToCompete : undefined}
+            onHowToCompete={isStillCompeting ? handleHowToCompete : undefined}
             onDashboard={hasDashboardAccess ? handleDashboard : null}
             onLaunchCompetition={isAuthenticated ? handleLaunchCompetition : undefined}
             hasDashboardAccess={hasDashboardAccess}
@@ -257,6 +260,8 @@ function CompetitionLayoutInner() {
         <Suspense fallback={null}>
           {isContestantView ? (
             <ContestantView />
+          ) : isRulesView ? (
+            <OfficialRulesView />
           ) : hasStandingsViews && isLeaderboardView ? (
             <LeaderboardView />
           ) : hasStandingsViews && isPrizesView ? (
@@ -265,6 +270,12 @@ function CompetitionLayoutInner() {
             <PhaseContent phase={phase} />
           )}
         </Suspense>
+
+        {/* Persistent footer — org/EliteRank branding + policy links
+            (Official Rules, Contest Terms, Terms, Privacy). Rendered at the
+            layout level so the policies are reachable in every phase and view,
+            not just on the nominations page. */}
+        {!isContestantView && <CompetitionFooter />}
       </main>
 
       {/* Modals rendered at layout level */}
@@ -397,7 +408,7 @@ function ViewNavigation({ currentView }) {
   // (slug `/:orgSlug/:slug`, ID `/:orgSlug/id/:competitionId`, legacy `/c/...`)
   // and preserve query params like ?preview=voting for host previews.
   const basePath = location.pathname
-    .replace(/\/(leaderboard|prizes|activity|enter)\/?$/, '')
+    .replace(/\/(leaderboard|prizes|activity|enter|rules)\/?$/, '')
     .replace(/\/$/, '');
   const search = location.search || '';
 

@@ -46,6 +46,23 @@ export function transformSupabaseImage(url, { width, height, quality = 75, resiz
 }
 
 /**
+ * The single canonical logo for an organization/competition — the file the
+ * host uploads. Prefer `header_logo_url` (uploaded by the host in the
+ * dashboard's Branding editor — "the logo that appears on the competition
+ * page with 'Presented by' above it") and fall back to `logo_url` (the
+ * org-level mark set at onboarding/by a super admin) only when the host
+ * hasn't uploaded their own. Returns null when neither is set so callers can
+ * render their own placeholder (crown).
+ *
+ * Using this everywhere keeps one logo per org consistent across the header,
+ * footer, and listings, and ensures the host's own upload wins over the
+ * onboarding default.
+ */
+export function getOrgLogo(organization) {
+  return organization?.header_logo_url || organization?.logo_url || null;
+}
+
+/**
  * Convenience for square avatars. Doubles the rendered size so retina
  * displays still get crisp output.
  */

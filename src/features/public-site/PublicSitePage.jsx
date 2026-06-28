@@ -16,6 +16,7 @@ import VoteModal from './components/VoteModal';
 import CompetitionTeaser from './components/CompetitionTeaser';
 import PublicProfileView from './components/PublicProfileView';
 import UpcomingEventCard from './components/UpcomingEventCard';
+import { getOrgLogo } from '../../lib/storageImage';
 
 const VOTING_TABS = [
   { id: 'contestants', label: 'Vote', mobileLabel: 'Vote', icon: Users },
@@ -504,7 +505,7 @@ export default function PublicSitePage({
 
             <div style={{ ...styleHelpers.flexStart, gap: spacing.md, minWidth: 0 }}>
               <OrganizationLogo
-                logo={competition?.organization?.logo_url}
+                logo={getOrgLogo(competition?.organization)}
                 size={isMobile ? 32 : 40}
                 style={{ borderRadius: borderRadius.md, flexShrink: 0 }}
               />

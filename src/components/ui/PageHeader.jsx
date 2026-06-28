@@ -47,10 +47,12 @@ function PageHeader({ title, subtitle, onBack, backLabel = 'Back', onHowToCompet
   // for authenticated users.
   const { performances } = useMyPerformance(user?.id);
 
-  // "How to Win" only makes sense while a competition is actively running —
-  // hide it once the user's competitions are all Coming Soon or Completed.
-  const hasActiveCompetition = performances.some((p) => p.isActive);
-  const handleHowToCompete = hasActiveCompetition
+  // "How to Win" and "Rewards" only apply while the user is still in the running
+  // — a competition that's actively running AND in which they haven't been
+  // eliminated and haven't already won/finished. ("Performance" stays available
+  // regardless so they can review past results.)
+  const isStillCompeting = performances.some((p) => p.isActive && p.status === 'active');
+  const handleHowToCompete = isStillCompeting
     ? (onHowToCompete || (() => setShowGuide(true)))
     : undefined;
 
@@ -81,7 +83,7 @@ function PageHeader({ title, subtitle, onBack, backLabel = 'Back', onHowToCompet
             onLogin={() => navigate('/login')}
             onLogout={handleLogout}
             onProfile={handleProfile}
-            onRewards={profile?.is_nominee_or_contestant ? handleRewards : undefined}
+            onRewards={isStillCompeting ? handleRewards : undefined}
             onAchievements={profile?.is_nominee_or_contestant ? handleAchievements : undefined}
             onAccountSettings={handleAccountSettings}
             onHowToCompete={handleHowToCompete}
