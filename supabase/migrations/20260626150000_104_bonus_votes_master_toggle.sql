@@ -59,7 +59,7 @@ BEGIN
 
   RETURN COALESCE(v_result, '[]'::jsonb);
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- ── Gate the award path ─────────────────────────────────────────────────────
 -- (rebuilds migration 056's definition, adding the competition-level check)
@@ -72,6 +72,7 @@ CREATE OR REPLACE FUNCTION public.award_bonus_votes(
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $function$
 DECLARE
   v_task bonus_vote_tasks%ROWTYPE;
@@ -189,6 +190,7 @@ CREATE OR REPLACE FUNCTION public.submit_bonus_proof(
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $function$
 DECLARE
   v_task bonus_vote_tasks%ROWTYPE;

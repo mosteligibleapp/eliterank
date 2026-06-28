@@ -27,7 +27,9 @@ BEGIN
   PERFORM setup_default_bonus_tasks(NEW.id);
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+-- search_path pinned so name resolution can't be hijacked by a schema the
+-- caller controls (SECURITY DEFINER privilege-escalation hardening).
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 DROP TRIGGER IF EXISTS trg_seed_default_bonus_tasks ON competitions;
 CREATE TRIGGER trg_seed_default_bonus_tasks
