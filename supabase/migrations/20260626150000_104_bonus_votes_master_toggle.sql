@@ -24,6 +24,18 @@ CREATE OR REPLACE FUNCTION get_bonus_vote_status(
 DECLARE
   v_result JSONB;
 BEGIN
+  -- Authorization: only the contestant themselves, a competition manager
+  -- (host / co-host / org owner), a super admin, or a trusted service-role
+  -- caller may read bonus status (it exposes proof URLs + rejection reasons).
+  IF NOT (
+    COALESCE((NULLIF(current_setting('request.jwt.claims', true), '')::jsonb ->> 'role'), '') = 'service_role'
+    OR is_super_admin()
+    OR _is_competition_manager(p_competition_id, auth.uid())
+    OR auth.uid() = (SELECT user_id FROM contestants WHERE id = p_contestant_id)
+  ) THEN
+    RETURN '[]'::jsonb;
+  END IF;
+
   -- Feature turned off for this competition → no bonus tasks at all.
   IF (SELECT bonus_votes_enabled FROM competitions WHERE id = p_competition_id) = FALSE THEN
     RETURN '[]'::jsonb;
@@ -82,6 +94,18 @@ DECLARE
   v_comp_name TEXT;
   v_contestant_status TEXT;
 BEGIN
+  -- Authorization: the contestant acting on themselves, a competition manager
+  -- (host / co-host / org owner), a super admin, or a trusted service-role
+  -- caller. Blocks one authenticated user awarding votes to another's entry.
+  IF NOT (
+    COALESCE((NULLIF(current_setting('request.jwt.claims', true), '')::jsonb ->> 'role'), '') = 'service_role'
+    OR is_super_admin()
+    OR _is_competition_manager(p_competition_id, auth.uid())
+    OR auth.uid() = (SELECT user_id FROM contestants WHERE id = p_contestant_id)
+  ) THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Not authorized', 'unauthorized', true);
+  END IF;
+
   -- Bonus votes turned off for this competition.
   IF (SELECT bonus_votes_enabled FROM competitions WHERE id = p_competition_id) = FALSE THEN
     RETURN jsonb_build_object(
@@ -198,6 +222,18 @@ DECLARE
   v_submission_id UUID;
   v_contestant_status TEXT;
 BEGIN
+  -- Authorization: the contestant acting on themselves, a competition manager
+  -- (host / co-host / org owner), a super admin, or a trusted service-role
+  -- caller. Blocks one authenticated user submitting proof for another's entry.
+  IF NOT (
+    COALESCE((NULLIF(current_setting('request.jwt.claims', true), '')::jsonb ->> 'role'), '') = 'service_role'
+    OR is_super_admin()
+    OR _is_competition_manager(p_competition_id, auth.uid())
+    OR auth.uid() = (SELECT user_id FROM contestants WHERE id = p_contestant_id)
+  ) THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Not authorized', 'unauthorized', true);
+  END IF;
+
   -- Bonus votes turned off for this competition.
   IF (SELECT bonus_votes_enabled FROM competitions WHERE id = p_competition_id) = FALSE THEN
     RETURN jsonb_build_object(
