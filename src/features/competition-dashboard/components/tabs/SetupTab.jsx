@@ -190,8 +190,11 @@ export default function SetupTab({
         </p>
       </div>
 
-      {/* Hosts (creator + co-hosts) — moved here from the People tab. */}
-      <div style={{ ...sectionStyle('hosts'), marginBottom: spacing.xxl }}>
+      {/* Hosts (creator + co-hosts) — moved here from the People tab. The inner
+          HostsPanel already supplies the standard section gap (Panel's
+          marginBottom: xxl), so the wrapper adds none — otherwise this section
+          would sit a double gap below the next one. */}
+      <div style={sectionStyle('hosts')}>
         <HostsPanel
           host={host}
           coHosts={coHosts}
