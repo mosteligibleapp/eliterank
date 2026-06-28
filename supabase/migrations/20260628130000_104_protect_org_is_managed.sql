@@ -29,3 +29,8 @@ DROP TRIGGER IF EXISTS trg_protect_org_is_managed ON organizations;
 CREATE TRIGGER trg_protect_org_is_managed
   BEFORE UPDATE ON organizations
   FOR EACH ROW EXECUTE FUNCTION _protect_org_is_managed();
+
+-- It's a trigger function — it fires as the trigger regardless of EXECUTE grant,
+-- and is meaningless to call directly (it references NEW/OLD). Revoke the default
+-- public grant so it isn't a needlessly-callable SECURITY DEFINER function.
+REVOKE EXECUTE ON FUNCTION _protect_org_is_managed() FROM PUBLIC;
