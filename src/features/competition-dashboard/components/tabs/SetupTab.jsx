@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Star, Plus, Trash2, Edit2, Lock, CheckCircle, Gift } from 'lucide-react';
-import { Button, Panel } from '../../../../components/ui';
-import { colors, spacing, borderRadius, typography } from '../../../../styles/theme';
+import { Calendar, Lock, CheckCircle } from 'lucide-react';
+import { Panel } from '../../../../components/ui';
+import { colors, spacing, typography } from '../../../../styles/theme';
 import { useResponsive } from '../../../../hooks/useResponsive';
 import TimelineSettings from '../TimelineSettings';
 import JudgingPanel from '../JudgingPanel';
@@ -10,6 +10,9 @@ import CompetitionSummaryCard from '../CompetitionSummaryCard';
 import HostsPanel from '../HostsPanel';
 import { isFieldEditable } from '../../../../utils/fieldEditability';
 import { NominationFormEditor } from '../settings';
+import LockedSection from './setup/LockedSection';
+import SponsorsSection from './setup/SponsorsSection';
+import CharitySection from './setup/CharitySection';
 
 // Top-to-bottom order of every Setup section, aligned with the launch
 // checklist: Timeline → Nomination form → Judging (judges, criteria, results,
@@ -36,39 +39,12 @@ const SECTION_ORDER = [
 ];
 
 /**
- * LockedSection — a grayed-out, inaccessible placeholder for a Setup section
- * that doesn't apply to this competition (e.g. no charity, or no judges
- * because winners are decided by public vote). Stays visible so the host can
- * see it exists, but is dimmed and non-interactive.
- */
-function LockedSection({ title, icon: Icon = Lock, reason }) {
-  return (
-    <div style={{
-      background: colors.background.card,
-      border: `1px solid ${colors.border.light}`,
-      borderRadius: borderRadius.xxl,
-      boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
-      opacity: 0.5,
-      pointerEvents: 'none',
-      padding: spacing.xl,
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.xs }}>
-        <Icon size={22} style={{ color: colors.gold.primary }} />
-        <span style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.semibold, color: colors.text.primary }}>{title}</span>
-        <Lock size={16} style={{ color: colors.text.muted, marginLeft: 'auto' }} />
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, color: colors.text.muted, fontSize: typography.fontSize.sm }}>
-        <Lock size={14} style={{ flexShrink: 0 }} />
-        <span>{reason}</span>
-      </div>
-    </div>
-  );
-}
-
-/**
- * SetupTab - Configuration settings tab
- * Contains competition details, hosts, timeline, nomination form, judging,
- * sponsors, and charity. Participation tools live on EngagementTab.
+ * SetupTab - Configuration settings tab.
+ *
+ * Layout shell that orders and wires the setup sections (competition details,
+ * hosts, timeline, nomination form, judging, sponsors, charity). Each section
+ * is its own component under ./setup or a standalone panel component.
+ * Participation tools live on EngagementTab.
  */
 export default function SetupTab({
   competition,
@@ -138,11 +114,6 @@ export default function SetupTab({
       (!charityActive && id === 'charity');
     return { order: locked ? 100 + idx : 1 + idx, opacity: 1 };
   };
-
-  // Whether a section applies is driven by what the host entered in their
-  // competition details (e.g. charity / judging), not a manual "not using"
-  // toggle — so the header just shows the section's own action.
-  const sectionAction = (id, ownAction) => ownAction || null;
 
   // What the host actually configured drives which Setup sections apply:
   //  - charity panel is only relevant if they're donating a % of proceeds
@@ -258,12 +229,10 @@ export default function SetupTab({
         defaultCollapsed={focusId !== 'nominationForm'}
       />
 
-      {/* Judging criteria + results. Only relevant when winners are decided by
-          judges (or a hybrid). For pure public-vote competitions these are
-          grayed out and inaccessible. */}
-      {/* Judging criteria + weight — locks at publish. The judge roster lives in
-          its own section below (editable anytime), so locked vs. editable group
-          cleanly. */}
+      {/* Judging criteria + weight — locks at publish. Only relevant when
+          winners are decided by judges (or a hybrid); for pure public-vote
+          competitions it's grayed out and inaccessible. The judge roster lives
+          in its own section below (editable anytime). */}
       {usesJudges ? (
         <div id="setup-section-judgingCriteria" style={sectionStyle('judgingCriteria')}>
           <JudgingPanel
@@ -303,173 +272,29 @@ export default function SetupTab({
         </div>
       )}
 
-      {/* Sponsors — view, add, edit, and remove. Sponsors appear publicly on
-          the competition's Prizes/Rewards page, but can be managed any time, so
-          this isn't part of the publish-locked group above. */}
-      <Panel
-        key={`section-sponsors-${focusId === 'sponsors' ? focusNonce : 'x'}`}
-        id="setup-section-sponsors"
-        title={`Sponsors (${sponsors.length})`}
-        icon={Star}
+      <SponsorsSection
+        sponsors={sponsors}
+        isMobile={isMobile}
+        focusId={focusId}
+        focusNonce={focusNonce}
         badge={editBadge}
-        action={sectionAction('sponsors', <Button size="sm" icon={Plus} onClick={() => onOpenSponsorModal(null)}>Add Sponsor</Button>)}
-        collapsible
-        defaultCollapsed={focusId !== 'sponsors'}
         style={sectionStyle('sponsors')}
-      >
-        <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
-          {sponsors.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
-              <Star size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
-              <p>No sponsors yet</p>
-              <p style={{ fontSize: typography.fontSize.sm, marginTop: spacing.sm }}>
-                Add the brands backing your competition — they appear on your public Prizes page.
-              </p>
-            </div>
-          ) : (
-            <div style={{ display: 'grid', gap: spacing.md }}>
-              {sponsors.map((sponsor) => (
-                <div key={sponsor.id} style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: spacing.lg,
-                  padding: spacing.lg,
-                  background: colors.background.secondary,
-                  borderRadius: borderRadius.lg,
-                  flexWrap: isMobile ? 'wrap' : 'nowrap',
-                }}>
-                  {sponsor.logoUrl ? (
-                    <img src={sponsor.logoUrl} alt={sponsor.name} style={{ width: 48, height: 48, borderRadius: borderRadius.md, objectFit: 'contain', flexShrink: 0 }} />
-                  ) : (
-                    <div style={{ width: 48, height: 48, background: colors.gold.muted, borderRadius: borderRadius.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <Star size={24} style={{ color: colors.gold.primary }} />
-                    </div>
-                  )}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontWeight: typography.fontWeight.medium }}>{sponsor.name}</p>
-                    <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm }}>
-                      {sponsor.tier === 'inkind'
-                        ? 'In-kind'
-                        : `${(sponsor.tier || '').charAt(0).toUpperCase()}${(sponsor.tier || '').slice(1)} Tier`}
-                      {sponsor.amount ? ` • $${sponsor.amount.toLocaleString()}` : ''}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => onOpenSponsorModal(sponsor)}
-                    title="Edit sponsor"
-                    style={{
-                      padding: spacing.sm,
-                      background: 'transparent',
-                      border: `1px solid ${colors.border.primary}`,
-                      borderRadius: borderRadius.md,
-                      color: colors.text.secondary,
-                      cursor: 'pointer',
-                      minWidth: '36px',
-                      minHeight: '36px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <Edit2 size={14} />
-                  </button>
-                  <button
-                    onClick={() => onDeleteSponsor(sponsor.id)}
-                    title="Remove sponsor"
-                    style={{
-                      padding: spacing.sm,
-                      background: 'transparent',
-                      border: `1px solid rgba(239,68,68,0.3)`,
-                      borderRadius: borderRadius.md,
-                      color: '#ef4444',
-                      cursor: 'pointer',
-                      minWidth: '36px',
-                      minHeight: '36px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </Panel>
+        onOpenSponsorModal={onOpenSponsorModal}
+        onDeleteSponsor={onDeleteSponsor}
+      />
 
-      {/* Charity Section — only relevant if the host is donating a % of
-          proceeds. Otherwise it's grayed out and inaccessible. */}
-      {!charityApplies ? (
-        <div id="setup-section-charity" style={sectionStyle('charity')}>
-          <LockedSection
-            title="Charity Partner"
-            icon={Gift}
-            reason="Not used — you chose not to donate a portion of proceeds. Turn charity on in your competition details to set this up."
-          />
-        </div>
-      ) : (
-      <Panel
-        key={`section-charity-${isHidden('charity')}-${focusId === 'charity' ? focusNonce : 'x'}`}
-        id="setup-section-charity"
-        title="Charity Partner"
-        icon={Gift}
-        locked={publishLocked}
+      <CharitySection
+        competition={competition}
+        charityApplies={charityApplies}
+        isMobile={isMobile}
+        focusId={focusId}
+        focusNonce={focusNonce}
+        charityHidden={isHidden('charity')}
         badge={lockBadge}
-        action={sectionAction('charity',
-          <Button size="sm" icon={competition?.charityName ? Edit2 : Plus} onClick={onOpenCharityModal}>
-            {competition?.charityName ? 'Edit' : 'Add Charity'}
-          </Button>
-        )}
-        collapsible
-        defaultCollapsed={focusId !== 'charity'}
         style={sectionStyle('charity')}
-      >
-        <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
-          {!competition?.charityName ? (
-            <div style={{ textAlign: 'center', padding: spacing.xl, color: colors.text.secondary }}>
-              <Gift size={48} style={{ marginBottom: spacing.md, opacity: 0.5 }} />
-              <p>No charity partner set</p>
-              <p style={{ fontSize: typography.fontSize.sm, marginTop: spacing.sm }}>
-                Highlight a charity that benefits from competition proceeds
-              </p>
-            </div>
-          ) : (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: spacing.lg,
-              padding: spacing.lg,
-              background: colors.background.secondary,
-              borderRadius: borderRadius.lg,
-              flexWrap: isMobile ? 'wrap' : 'nowrap',
-            }}>
-              {competition.charityLogoUrl ? (
-                <img src={competition.charityLogoUrl} alt={competition.charityName} style={{ width: 48, height: 48, borderRadius: borderRadius.md, objectFit: 'contain' }} />
-              ) : (
-                <div style={{ width: 48, height: 48, background: colors.gold.muted, borderRadius: borderRadius.md, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Gift size={24} style={{ color: colors.gold.primary }} />
-                </div>
-              )}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontWeight: typography.fontWeight.medium }}>{competition.charityName}</p>
-                {competition.charityWebsiteUrl && (
-                  <a
-                    href={competition.charityWebsiteUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, textDecoration: 'underline' }}
-                  >
-                    {competition.charityWebsiteUrl}
-                  </a>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      </Panel>
-      )}
+        publishLocked={publishLocked}
+        onOpenCharityModal={onOpenCharityModal}
+      />
     </div>
   );
 }
