@@ -877,45 +877,70 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
   };
 
   // Voting/Judging round management
+  const ROUND_LEN_MS = 7 * 86400000; // default round length when we auto-fill
   const addVotingRound = (roundType = 'voting') => {
     const typeLabel = roundType === 'judging' ? 'Judging' : 'Voting';
-    // Auto-fill the first voting round's start from the nomination close date
-    // (5 days after) so the host doesn't have to compute it.
-    const isFirstVoting = roundType === 'voting' && votingRounds.filter(r => r.round_type === 'voting').length === 0;
-    const autoStartIso = isFirstVoting && recommendedVotingStartIso ? recommendedVotingStartIso : '';
-    // When we auto-fill the start, also suggest a valid end (~10 days later) so
-    // the round is never left with an end-before-start — the host can adjust it.
-    const autoEndIso = autoStartIso
-      ? new Date(new Date(autoStartIso).getTime() + 10 * 86400000).toISOString()
-      : '';
-    const newRound = {
-      ...DEFAULT_VOTING_ROUND,
-      title: `${typeLabel} Round ${votingRounds.filter(r => r.round_type === roundType).length + 1}`,
-      round_order: votingRounds.length + 1,
-      round_type: roundType,
-      start_date: autoStartIso || DEFAULT_VOTING_ROUND.start_date || '',
-      end_date: autoEndIso || DEFAULT_VOTING_ROUND.end_date || null,
-    };
-    const newDisplay = {
-      start_date: autoStartIso ? formatDateForDisplay(autoStartIso) : '',
-      end_date: autoEndIso ? formatDateForDisplay(autoEndIso) : '',
-    };
 
     // Keep judging glued to the FINAL round. In a judged competition, if the
     // last round is the decider (it carries judge weight, or is a judges-only
     // round), insert the new voting round *before* it so the decider stays last.
     // Otherwise a new round would silently become the "final round" and strand
     // judging mid-schedule — the exact behavior that made it look like judging
-    // vanished. Both parallel arrays are spliced at the same index.
+    // vanished.
     const last = votingRounds[votingRounds.length - 1];
     const lastIsDecider =
       !!last && ((last.judge_weight || 0) > 0 || (last.round_type || 'voting') === 'judging');
-    const insertAt = roundType === 'voting' && usesJudges && lastIsDecider
-      ? votingRounds.length - 1
-      : votingRounds.length;
+    const insertedBeforeFinal = roundType === 'voting' && usesJudges && lastIsDecider;
+    const insertAt = insertedBeforeFinal ? votingRounds.length - 1 : votingRounds.length;
 
-    setVotingRounds(prev => [...prev.slice(0, insertAt), newRound, ...prev.slice(insertAt)]);
-    setRoundDisplayValues(prev => [...prev.slice(0, insertAt), newDisplay, ...prev.slice(insertAt)]);
+    // Start the new round right after the round before it ends, so the schedule
+    // stays contiguous. The very first voting round falls back to the
+    // recommended start (nominations close + 5 days).
+    const isFirstVoting = roundType === 'voting' && votingRounds.filter(r => r.round_type === 'voting').length === 0;
+    const precedingRound = insertAt > 0 ? votingRounds[insertAt - 1] : null;
+    const startIso = precedingRound?.end_date
+      || (isFirstVoting && recommendedVotingStartIso ? recommendedVotingStartIso : '');
+    const endIso = startIso
+      ? new Date(new Date(startIso).getTime() + ROUND_LEN_MS).toISOString()
+      : '';
+
+    const newRound = {
+      ...DEFAULT_VOTING_ROUND,
+      title: `${typeLabel} Round ${votingRounds.filter(r => r.round_type === roundType).length + 1}`,
+      round_order: votingRounds.length + 1,
+      round_type: roundType,
+      start_date: startIso || DEFAULT_VOTING_ROUND.start_date || '',
+      end_date: endIso || DEFAULT_VOTING_ROUND.end_date || null,
+    };
+    const newDisplay = {
+      start_date: startIso ? formatDateForDisplay(startIso) : '',
+      end_date: endIso ? formatDateForDisplay(endIso) : '',
+    };
+
+    const rounds = [...votingRounds];
+    const disps = [...roundDisplayValues];
+    rounds.splice(insertAt, 0, newRound);
+    disps.splice(insertAt, 0, newDisplay);
+
+    // When inserted before the judged final round, slide that final round to
+    // open when the new round closes (preserving its length) so it stays
+    // contiguous instead of overlapping the round we just added.
+    if (insertedBeforeFinal && endIso) {
+      const fi = insertAt + 1;
+      const fin = rounds[fi];
+      if (fin) {
+        const origLen = (fin.start_date && fin.end_date)
+          ? Math.max(86400000, new Date(fin.end_date).getTime() - new Date(fin.start_date).getTime())
+          : ROUND_LEN_MS;
+        const finEnd = new Date(new Date(endIso).getTime() + origLen).toISOString();
+        rounds[fi] = { ...fin, start_date: endIso, end_date: finEnd };
+        disps[fi] = { start_date: formatDateForDisplay(endIso), end_date: formatDateForDisplay(finEnd) };
+        pushFinaleAfterLast(rounds);
+      }
+    }
+
+    setVotingRounds(rounds);
+    setRoundDisplayValues(disps);
   };
 
   // ── How winners are decided (configured inline on the final round) ─────────
