@@ -1,5 +1,5 @@
 -- =============================================================================
--- Migration 103: managed (company-run) organizations + super-admin as manager
+-- Migration 105: managed (company-run) organizations + super-admin as manager
 -- =============================================================================
 -- Some competitions are run by the platform company itself (e.g. Most Eligible).
 -- For these, the legal Host Agreement is signed off-platform and payouts settle

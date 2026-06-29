@@ -1,11 +1,11 @@
 -- =============================================================================
--- Migration 104: protect organizations.is_managed from non-super-admin writes
+-- Migration 106: protect organizations.is_managed from non-super-admin writes
 -- =============================================================================
 -- Hosts and co-hosts can UPDATE their own organization row (e.g. branding) via
 -- the hosts_update_own_org / co_hosts_update_own_org RLS policies. Postgres RLS
 -- is row-level, not column-level, so without this guard a host could set
 -- is_managed = true on their own org with a direct API call and self-bypass the
--- Host Agreement + Stripe-KYC launch gates (migration 103). Only a super admin
+-- Host Agreement + Stripe-KYC launch gates (migration 105). Only a super admin
 -- may change is_managed.
 --
 -- The trigger only fires when is_managed actually changes, so legitimate org
