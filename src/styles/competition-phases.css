@@ -5383,6 +5383,14 @@ a.rewards-carousel-link:hover .rewards-prize-image-wrap {
   transform: translateY(-2px);
 }
 
+.judge-card-clickable {
+  cursor: pointer;
+}
+
+.judge-card-clickable:hover {
+  border-color: rgba(var(--color-primary-rgb), 0.45);
+}
+
 .judge-avatar {
   width: 80px;
   height: 80px;
