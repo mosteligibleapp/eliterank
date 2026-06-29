@@ -190,8 +190,10 @@ export default function SetupTab({
         </p>
       </div>
 
-      {/* Hosts (creator + co-hosts) — moved here from the People tab. */}
-      <div style={{ ...sectionStyle('hosts'), marginBottom: spacing.xxl }}>
+      {/* Hosts (creator + co-hosts) — moved here from the People tab. The
+          inner Panel already carries the standard bottom margin, so we don't
+          add another here (doing so double-spaced this section). */}
+      <div style={sectionStyle('hosts')}>
         <HostsPanel
           host={host}
           coHosts={coHosts}
