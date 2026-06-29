@@ -119,7 +119,8 @@ grant select (
   org_type,
   instagram,
   tiktok,
-  facebook
+  facebook,
+  is_managed
 ) on public.organizations to anon;
 
 -- Defensive: make sure the normal full-table grants for trusted roles are
