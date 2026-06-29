@@ -321,15 +321,35 @@
     .doc{max-width:100%;box-shadow:none}
     /* The wrapper table is print-only (header/footer spacing); on screen it
        forces a min-content width that stretches every section past the phone
-       viewport. Flatten it to normal block flow so content wraps to width. */
-    .doc-frame,.doc-frame tbody,.doc-frame tr,.doc-frame td{display:block;width:auto!important}
+       viewport. Flatten it to normal block flow so content wraps to width.
+       Scope to its OWN rows only so the nested content tables below keep their
+       own (re)styling instead of inheriting this flatten. */
+    .doc-frame,.doc-frame>thead,.doc-frame>tbody,.doc-frame>thead>tr,
+    .doc-frame>tbody>tr,.doc-frame>thead>tr>td,.doc-frame>tbody>tr>td{display:block;width:auto!important}
     .pad{padding:34px 20px!important;overflow-wrap:break-word}
+    /* The Schedule and Launching tables don't fit three/two columns on a
+       phone. Stack each row into a labelled block and drop the now-orphaned
+       column header. */
+    .pad table{display:block;width:100%}
+    .pad table thead{display:none}
+    .pad table tbody{display:block}
+    .pad table tr{display:block;padding:12px 0;border-bottom:1px solid var(--line)}
+    .pad table tr:last-child{border-bottom:0}
+    .pad table td{display:block;width:auto!important;border:0!important;padding:0!important}
+    .pad table td+td{margin-top:4px}
+    /* Stack the geographic "why localized" rows: label above description. */
+    .why>div{flex-direction:column;gap:2px!important}
+    /* Drop the redundant packet date label on the cover; it wraps into the logo. */
+    .coverbar>div:last-child{display:none}
     /* Collapse multi-column content grids to a single column */
     .doc [style*="grid-template-columns:repeat("],
     .doc [style*="fr 1fr"],
     .doc [style*="1.05fr"]{grid-template-columns:1fr!important}
     /* Let the dashboard mock's tab strip wrap instead of being clipped */
     .doc [style*="gap:22px"]{flex-wrap:wrap;gap:8px 16px!important}
+    /* Stack the dashboard mock's top bar so the title, ADMIN badge and the
+       View Competition / Logout actions don't collide on a narrow screen */
+    .mockbar>div:first-child{flex-wrap:wrap;row-gap:8px}
     /* Scale oversized display type down to a readable size on phones */
     .pad h1{font-size:clamp(28px,8vw,40px)!important;line-height:1.08!important}
     .pad h2{font-size:clamp(24px,7vw,34px)!important;line-height:1.12!important}
@@ -349,7 +369,7 @@
 
 <!-- ========================= COVER ========================= -->
 <section class="pad" style="position:relative">
-  <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:14px;border-bottom:1.5px solid var(--ink)">
+  <div class="coverbar" style="display:flex;align-items:center;justify-content:space-between;padding-bottom:14px;border-bottom:1.5px solid var(--ink)">
     <div style="font:700 17px/1 'Hanken Grotesk';letter-spacing:.30em">ELITE<span style="color:var(--accent)">RANK</span></div>
     <div style="font:600 10px/1 'Hanken Grotesk';letter-spacing:.16em;text-transform:uppercase;color:var(--muted)">Host Information Packet · June 2026</div>
   </div>
@@ -580,7 +600,7 @@
   <h2 style="margin:14px 0 0;font:500 38px/1.05 'Newsreader';letter-spacing:-.018em">What you get, out of the box.</h2>
 
   <!-- Dashboard mockup -->
-  <figure class="keep" style="margin:24px 0 0;border:1px solid var(--line2);border-radius:6px;overflow:hidden;background:var(--surface);box-shadow:0 8px 24px rgba(0,0,0,.06)">
+  <figure class="keep mockbar" style="margin:24px 0 0;border:1px solid var(--line2);border-radius:6px;overflow:hidden;background:var(--surface);box-shadow:0 8px 24px rgba(0,0,0,.06)">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 16px;border-bottom:1px solid var(--line);background:var(--surface2)">
       <div style="display:flex;align-items:center;gap:10px">
         <span style="font:600 12px/1 'Hanken Grotesk';color:var(--ink)">Most Eligible Bachelorettes</span>
@@ -835,7 +855,7 @@
 
   <div class="keep" style="margin-top:18px">
     <div style="font:600 12px/1 'Hanken Grotesk';letter-spacing:.04em;color:var(--ink);margin-bottom:4px">Why localized competitions win</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 28px">
+    <div class="why" style="display:grid;grid-template-columns:1fr 1fr;gap:0 28px">
       <div style="display:flex;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)"><span style="font:600 13px/1.4 'Hanken Grotesk';color:var(--accent)">Lower acquisition cost.</span><span style="font:400 13px/1.4 'Hanken Grotesk';color:var(--body)">Concentrated marketing in one metro, and participants do the heavy lifting.</span></div>
       <div style="display:flex;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)"><span style="font:600 13px/1.4 'Hanken Grotesk';color:var(--accent)">Live events become possible.</span><span style="font:400 13px/1.4 'Hanken Grotesk';color:var(--body)">In-person fans drive turnout, ticket revenue, and reach.</span></div>
       <div style="display:flex;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)"><span style="font:600 13px/1.4 'Hanken Grotesk';color:var(--accent)">Local sponsors line up.</span><span style="font:400 13px/1.4 'Hanken Grotesk';color:var(--body)">They pay to reach engaged, aligned communities.</span></div>
