@@ -55,18 +55,16 @@ export default function LoginPage({ onLogin, onBack }) {
       const { data: authExists, error: authRpcError } = await supabase
         .rpc('email_is_registered', { email_input: email });
 
-      // If the RPC is unavailable (old deploy), fall back to the profiles
-      // lookup so the flow keeps working instead of hard-erroring.
+      // Account existence is determined by the email_is_registered RPC
+      // (SECURITY DEFINER). There is no client-side profiles fallback: the anon
+      // key can no longer read or filter profiles.email (PII lockdown,
+      // migration 103). If the RPC is unavailable, treat as a new user — the
+      // downstream nominee check + signup path handle it, and an existing
+      // account surfaces an "already registered" error on signup.
       let userExists = authExists === true;
       if (authRpcError) {
-        console.warn('email_is_registered rpc failed, falling back to profiles lookup:', authRpcError);
-        const { data: existingProfile } = await supabase
-          .from('profiles')
-          .select('id')
-          .ilike('email', email)
-          .limit(1)
-          .maybeSingle();
-        userExists = !!existingProfile;
+        console.warn('email_is_registered rpc failed; cannot verify account client-side:', authRpcError);
+        userExists = false;
       }
 
       if (userExists) {
