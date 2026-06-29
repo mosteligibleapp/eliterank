@@ -221,7 +221,7 @@ function fromDateInput(local) {
 // One voting-round card, memoized so editing a field only re-renders that row
 // (not every card on each keystroke). Props are referentially stable: `round`
 // keeps its identity for untouched rows, and onUpdate/onRemove are useCallback'd.
-const VotingRoundCard = memo(function VotingRoundCard({ round, index, pos, isLastRound, isMobile, usesJudges, onUpdate, onRemove }) {
+const VotingRoundCard = memo(function VotingRoundCard({ round, index, pos, isLastRound, isMobile, usesJudges, onUpdate, onRemove, onSetBlend, onSetSeparate, onSetWeight }) {
   const roundConfig = ROUND_TYPE_CONFIG[round.round_type] || ROUND_TYPE_CONFIG.voting;
   const judgeWeight = round.judge_weight || 0;
   const isJudgingType = (round.round_type || 'voting') === 'judging';
@@ -287,20 +287,18 @@ const VotingRoundCard = memo(function VotingRoundCard({ round, index, pos, isLas
         </button>
       </div>
 
-      {(judged || judgingMissingOnFinal) && (
+      {/* Non-final judged round (off-final state) — brief explainer; the list
+          above also flags it and the final round's control below fixes it. */}
+      {judged && !(isLastRound && usesJudges) && (
         <p style={{
           fontSize: '11px', lineHeight: 1.4, marginBottom: spacing.md,
-          display: 'flex', alignItems: 'flex-start', gap: spacing.xs,
-          color: judgingMissingOnFinal ? '#ef4444' : colors.text.muted,
+          display: 'flex', alignItems: 'flex-start', gap: spacing.xs, color: colors.text.muted,
         }}>
-          <Info size={12} style={{ color: judgingMissingOnFinal ? '#ef4444' : colors.gold.primary, flexShrink: 0, marginTop: 1 }} />
+          <Info size={12} style={{ color: colors.gold.primary, flexShrink: 0, marginTop: 1 }} />
           <span>
-            {judgingMissingOnFinal
-              ? 'This is your final round, but judging isn’t set up yet. Choose how judges decide it in the '
-              : judgesOnly
-                ? 'Judges alone decide this round. Manage criteria in the '
-                : `Judges score this round alongside public votes (${judgeWeight}% judges · ${100 - judgeWeight}% votes). Manage the weight and criteria in the `}
-            <strong style={{ color: colors.text.secondary }}>Judging</strong> section below.
+            {judgesOnly
+              ? 'Judges alone decide this round (100%).'
+              : `Judges score this round alongside public votes — ${judgeWeight}% judges · ${100 - judgeWeight}% votes.`}
           </span>
         </p>
       )}
@@ -379,6 +377,59 @@ const VotingRoundCard = memo(function VotingRoundCard({ round, index, pos, isLas
           </p>
         </div>
       )}
+
+      {/* Final round, judged competition: choose how winners are decided right
+          here — no separate panel, and the rounds list updates instantly. */}
+      {isLastRound && usesJudges && (() => {
+        const mode = isJudgingType ? 'separate' : (judgeWeight > 0 ? 'blend' : 'unset');
+        const optStyle = (active) => ({
+          flex: 1, textAlign: 'left', cursor: 'pointer',
+          padding: spacing.sm, borderRadius: borderRadius.md,
+          background: active ? 'rgba(212,175,55,0.10)' : colors.background.secondary,
+          border: `1px solid ${active ? colors.gold.primary : colors.border.light}`,
+        });
+        return (
+          <div style={{ marginTop: spacing.md, paddingTop: spacing.md, borderTop: `1px solid ${colors.border.light}` }}>
+            <label style={{ ...labelStyle, fontSize: typography.fontSize.xs, display: 'flex', alignItems: 'center', gap: spacing.xs }}>
+              <Award size={13} style={{ color: colors.gold.primary }} /> How winners are decided
+            </label>
+            <div style={{ display: isMobile ? 'block' : 'flex', gap: spacing.sm }}>
+              <button type="button" onClick={() => onSetBlend?.(judgeWeight >= 60 ? judgeWeight : 60)} style={{ ...optStyle(mode === 'blend'), marginBottom: isMobile ? spacing.sm : 0 }}>
+                <span style={{ fontWeight: typography.fontWeight.semibold, fontSize: typography.fontSize.sm, color: colors.text.primary }}>Public votes + judges</span>
+                <span style={{ display: 'block', fontSize: '10px', color: colors.text.muted, marginTop: 2 }}>Judges score this round; public votes still count (judges 60%+).</span>
+              </button>
+              <button type="button" onClick={() => onSetSeparate?.()} style={optStyle(mode === 'separate')}>
+                <span style={{ fontWeight: typography.fontWeight.semibold, fontSize: typography.fontSize.sm, color: colors.text.primary }}>Judges only</span>
+                <span style={{ display: 'block', fontSize: '10px', color: colors.text.muted, marginTop: 2 }}>A judges-only round after voting decides the winners (100%).</span>
+              </button>
+            </div>
+
+            {mode === 'blend' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm }}>
+                <span style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, whiteSpace: 'nowrap' }}>Judges weight</span>
+                <input
+                  type="range" min={60} max={100} step={5} value={judgeWeight || 60}
+                  onChange={(e) => onSetWeight?.(parseInt(e.target.value, 10))}
+                  style={{ flex: 1, accentColor: colors.gold.primary }}
+                />
+                <span style={{ fontSize: typography.fontSize.sm, color: colors.gold.primary, fontWeight: typography.fontWeight.semibold, minWidth: 92, textAlign: 'right' }}>
+                  {judgeWeight || 60}% judges · {100 - (judgeWeight || 60)}% votes
+                </span>
+              </div>
+            )}
+
+            {mode === 'unset' && (
+              <p style={{ fontSize: '11px', color: '#ef4444', marginTop: spacing.xs }}>
+                Pick how judges decide your final round.
+              </p>
+            )}
+
+            <p style={{ fontSize: '10px', color: colors.text.muted, marginTop: spacing.xs }}>
+              Judges score contestants on the criteria you set in the <strong style={{ color: colors.text.secondary }}>Judging</strong> section below.
+            </p>
+          </div>
+        );
+      })()}
     </div>
   );
 });
@@ -754,11 +805,11 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
           contestants_advance: round.contestants_advance || 10,
           tier_label: round.tier_label?.trim() || null,
           votes_reset_at_start: !!round.votes_reset_at_start,
-          // judge_weight is owned by the Judging section for existing rounds.
-          // Only seed it on INSERT (e.g. the recommended-schedule fill, which
-          // creates fresh id-less rounds) so the 60% blend persists — and a
-          // stale timeline save can never overwrite a weight set in JudgingPanel.
-          ...(round.id ? {} : { judge_weight: round.judge_weight ?? 0 }),
+          // Voting Details is now the single owner of the round schedule —
+          // including each round's judge weight and type — so we always persist
+          // it. (The Judging panel no longer writes rounds; it's a read-only
+          // summary, which removes the split-ownership desync.)
+          judge_weight: round.judge_weight ?? 0,
         }),
       });
 
@@ -865,6 +916,77 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
 
     setVotingRounds(prev => [...prev.slice(0, insertAt), newRound, ...prev.slice(insertAt)]);
     setRoundDisplayValues(prev => [...prev.slice(0, insertAt), newDisplay, ...prev.slice(insertAt)]);
+  };
+
+  // ── How winners are decided (configured inline on the final round) ─────────
+  // These operate on local state and persist on Save, so the rounds list and
+  // the judging setup are one source of truth — switching updates the list
+  // immediately (the old split-panel desync is gone). Two supported shapes:
+  //   • blend    — the final VOTING round is judged (judges ≥60% + public votes)
+  //   • separate — a dedicated JUDGES-ONLY round (100%) after voting closes
+  const pushFinaleAfterLast = (rounds) => {
+    const last = rounds[rounds.length - 1];
+    if (!last?.end_date) return;
+    const t = new Date(last.end_date).getTime();
+    if (Number.isNaN(t)) return;
+    const finale = new Date(t + 60 * 60 * 1000).toISOString(); // 1 hr after it ends
+    setSettings(prev => ({ ...prev, finals_date: finale }));
+    setDisplayValues(prev => ({ ...prev, finals_date: formatDateForDisplay(finale) }));
+  };
+
+  // "Public votes + judges": drop any dedicated judging round, then put the
+  // judge weight on the final voting round (judges control ≥60% — the
+  // skill-contest floor).
+  const setBlendJudging = (weight = 60) => {
+    const w = Math.max(60, Math.min(100, Math.round(weight) || 60));
+    const pairs = votingRounds
+      .map((r, i) => ({ r, d: roundDisplayValues[i] }))
+      .filter(({ r }) => (r.round_type || 'voting') !== 'judging');
+    const rounds = pairs.map(({ r }) => ({ ...r, round_type: 'voting', judge_weight: 0 }));
+    if (rounds.length) rounds[rounds.length - 1] = { ...rounds[rounds.length - 1], judge_weight: w };
+    setVotingRounds(rounds);
+    setRoundDisplayValues(pairs.map(({ d }) => d));
+    pushFinaleAfterLast(rounds);
+  };
+
+  // "Judges only": clear weight from voting rounds and ensure a trailing
+  // judges-only round (100%). Reuses an existing judging round if present.
+  const setSeparateJudging = () => {
+    let rounds = votingRounds.map((r) => ({
+      ...r,
+      judge_weight: (r.round_type === 'judging') ? 100 : 0,
+    }));
+    let disp = [...roundDisplayValues];
+    if (!rounds.some((r) => r.round_type === 'judging')) {
+      const lastVoting = [...rounds].reverse().find((r) => (r.round_type || 'voting') === 'voting')
+        || rounds[rounds.length - 1];
+      const start = lastVoting?.end_date || null;
+      const end = start ? new Date(new Date(start).getTime() + 5 * 86400000).toISOString() : null;
+      const winners = Number(competition?.numberOfWinners || competition?.number_of_winners)
+        || lastVoting?.contestants_advance || 1;
+      rounds = [...rounds, {
+        ...DEFAULT_VOTING_ROUND,
+        title: 'Judging Round',
+        round_type: 'judging',
+        judge_weight: 100,
+        start_date: start,
+        end_date: end,
+        contestants_advance: winners,
+      }];
+      disp = [...disp, {
+        start_date: start ? formatDateForDisplay(start) : '',
+        end_date: end ? formatDateForDisplay(end) : '',
+      }];
+    }
+    setVotingRounds(rounds);
+    setRoundDisplayValues(disp);
+    pushFinaleAfterLast(rounds);
+  };
+
+  // Slider while in blend mode — adjust the final round's judge weight in place.
+  const setDecidingWeight = (weight) => {
+    const w = Math.max(60, Math.min(100, Math.round(weight) || 60));
+    setVotingRounds(prev => prev.map((r, i) => (i === prev.length - 1 ? { ...r, judge_weight: w } : r)));
   };
 
   // Build the recommended schedule: three contiguous 10-day voting rounds
@@ -1162,7 +1284,7 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
           Voting should run at least <strong>30 days</strong> across at least <strong>3 rounds</strong>. We recommend voting opens 5 days after nominations close
           {recommendedVotingStartIso ? <> — about <strong>{formatDateForDisplay(recommendedVotingStartIso)}</strong>.</> : '.'}{' '}
           Use <strong>Auto-fill recommended</strong> to lay out 3 voting rounds and the finale for you
-          {usesJudges ? <> — judges decide the final round at <strong>60%</strong>. Prefer a separate judge-only finale? Switch the layout in the Judging section.</> : '. '}
+          {usesJudges ? <> — judges decide the final round at <strong>60%</strong>. Prefer a judges-only finale? Change it on the final round below.</> : '. '}
           {' '}Adjust anything after.
         </p>
 
@@ -1185,9 +1307,9 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
 
         {(() => {
         // Show the FULL schedule in one place — voting rounds and the judging
-        // round together, in order — so the host sees the whole timeline at a
-        // glance. (Judging criteria & weight are still managed in the Judging
-        // section; this list just makes the judging round visible in context.)
+        // round together, in order. How the final round is judged is set inline
+        // on its card below; only the scoring criteria live in the Judging
+        // section now. This is the single source of truth for the schedule.
         const displayRounds = votingRounds.map((round, index) => ({ round, index }));
         // Where does judging actually live, and is it on the final round? When
         // it isn't, the host hit exactly the confusing state we want to explain.
@@ -1216,27 +1338,33 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
         ) : (
           <>
           <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
-            {displayRounds.map(({ round, index }, pos) => (
-              <VotingRoundCard
-                key={index}
-                round={round}
-                index={index}
-                pos={pos}
-                isLastRound={pos === displayRounds.length - 1}
-                isMobile={isMobile}
-                usesJudges={usesJudges}
-                onUpdate={updateVotingRound}
-                onRemove={removeVotingRound}
-              />
-            ))}
+            {displayRounds.map(({ round, index }, pos) => {
+              const isLast = pos === displayRounds.length - 1;
+              return (
+                <VotingRoundCard
+                  key={index}
+                  round={round}
+                  index={index}
+                  pos={pos}
+                  isLastRound={isLast}
+                  isMobile={isMobile}
+                  usesJudges={usesJudges}
+                  onUpdate={updateVotingRound}
+                  onRemove={removeVotingRound}
+                  onSetBlend={isLast ? setBlendJudging : undefined}
+                  onSetSeparate={isLast ? setSeparateJudging : undefined}
+                  onSetWeight={isLast ? setDecidingWeight : undefined}
+                />
+              );
+            })}
           </div>
           {judgingNotOnFinal && (
             <p style={{ fontSize: typography.fontSize.xs, color: '#ef4444', marginTop: spacing.md, display: 'flex', alignItems: 'flex-start', gap: spacing.xs }}>
               <AlertTriangle size={13} style={{ flexShrink: 0, marginTop: 2 }} />
               <span>
                 Judging is set on <strong>{judgedRoundName}</strong>, but your final round is <strong>{finalRoundName}</strong>.
-                Judging should run on the final round (where winners are crowned). Move it in the{' '}
-                <strong style={{ color: colors.text.secondary }}>Judging</strong> section below.
+                Judging should run on the final round (where winners are crowned). Open your final round above and choose
+                how winners are decided to move it.
               </span>
             </p>
           )}
