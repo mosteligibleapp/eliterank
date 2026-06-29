@@ -24,8 +24,10 @@ ALTER TABLE organizations
 COMMENT ON COLUMN organizations.is_managed IS
   'True for company-run ("house") orgs whose Host Agreement is signed off-platform and whose payouts settle to the company Stripe account. Competitions under a managed org skip the on-platform agreement + Stripe-KYC launch gates.';
 
--- Most Eligible competitions are run by the company.
-UPDATE organizations SET is_managed = true WHERE name ILIKE '%most eligible%';
+-- Most Eligible and EliteRank competitions are run by the company itself.
+-- (Runs before the protect-is_managed trigger, which is added in migration 106.)
+UPDATE organizations SET is_managed = true
+  WHERE name ILIKE '%most eligible%' OR name ILIKE '%elite%rank%';
 
 -- 2. Super admins are managers of every competition ---------------------------
 CREATE OR REPLACE FUNCTION _is_competition_manager(p_competition_id UUID, p_uid UUID)
