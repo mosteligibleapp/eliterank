@@ -115,7 +115,7 @@ export default function CompetitionPage() {
       if (compData.winners && compData.winners.length > 0) {
         const { data: winnerProfiles, error: winnersError } = await supabase
           .from('profiles')
-          .select('id, email, first_name, last_name, avatar_url')
+          .select('id, first_name, last_name, avatar_url')
           .in('id', compData.winners);
 
         if (!winnersError && winnerProfiles) {

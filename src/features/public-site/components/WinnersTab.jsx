@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Crown, Trophy, Sparkles } from 'lucide-react';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { supabase } from '../../../lib/supabase';
+import { PROFILE_PUBLIC_COLS } from '../../../constants/safeColumns';
 import { SkeletonPulse, SkeletonCircle } from '../../../components/common/Skeleton';
 
 export default function WinnersTab({ city, season, winners = [], competitionId, onViewProfile }) {
@@ -34,10 +35,11 @@ export default function WinnersTab({ city, season, winners = [], competitionId, 
             return;
           }
 
-          // Fetch winner profiles with all fields
+          // Fetch winner profiles (public-safe display columns only — the anon
+          // key cannot read PII columns like email/phone/shipping_address).
           const { data: profiles, error: profilesError } = await supabase
             .from('profiles')
-            .select('*')
+            .select(PROFILE_PUBLIC_COLS)
             .in('id', compData.winners);
 
           if (profilesError || !profiles) {

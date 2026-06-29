@@ -6,6 +6,7 @@ import {
 import { Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { supabase } from '../../../lib/supabase';
+import { ORG_PUBLIC_COLS } from '../../../constants/safeColumns';
 import { STATUS_CONFIG, COMPETITION_STATUS } from '../../../types/competition';
 import { SkeletonPulse, SkeletonCircle, SkeletonCard } from '../../../components/common/Skeleton';
 import { getOrgLogo } from '../../../lib/storageImage';
@@ -35,7 +36,7 @@ export default function OrganizationPage() {
       // Fetch organization by slug
       const { data: orgData, error: orgError } = await supabase
         .from('organizations')
-        .select('*')
+        .select(ORG_PUBLIC_COLS)
         .eq('slug', orgSlug)
         .single();
 

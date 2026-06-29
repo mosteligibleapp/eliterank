@@ -114,7 +114,7 @@ export default function EliteRankCityModal({
         const [compsResult, votingRoundsResult, nominationPeriodsResult] = await Promise.all([
           supabase
             .from('competitions')
-            .select('*, host:profiles!competitions_host_id_fkey(id, first_name, last_name, email, avatar_url)')
+            .select('*, host:profiles!competitions_host_id_fkey(id, first_name, last_name, avatar_url)')
             .order('created_at', { ascending: false }),
           supabase.from('voting_rounds').select('*').order('round_order'),
           supabase.from('nomination_periods').select('*').order('period_order'),
@@ -211,7 +211,7 @@ export default function EliteRankCityModal({
         host_id: comp.host_id,
         host: hostProfile ? {
           id: hostProfile.id,
-          name: `${hostProfile.first_name || ''} ${hostProfile.last_name || ''}`.trim() || hostProfile.email,
+          name: `${hostProfile.first_name || ''} ${hostProfile.last_name || ''}`.trim() || 'Host',
           avatar: hostProfile.avatar_url,
         } : null,
         winners: comp.winners || [],
