@@ -44,6 +44,13 @@
 
 begin;
 
+-- is_managed is referenced in the organizations anon grant below. It is created
+-- by the managed-organizations migration, which sorts AFTER this one, so ensure
+-- it exists up front (idempotent) — otherwise a from-scratch deploy would fail
+-- on the grant before the column-creating migration runs. No-op on any DB that
+-- already has the column (incl. prod).
+alter table public.organizations add column if not exists is_managed boolean not null default false;
+
 -- ---------------------------------------------------------------------------
 -- profiles  (the user-account table)
 -- Excluded from anon: email, phone, shipping_address, onesignal_external_id,

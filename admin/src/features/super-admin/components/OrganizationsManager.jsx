@@ -22,7 +22,7 @@ export default function OrganizationsManager() {
   const [selectedOrg, setSelectedOrg] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
-  const [formData, setFormData] = useState({ name: '', description: '', logo_url: '' });
+  const [formData, setFormData] = useState({ name: '', description: '', logo_url: '', is_managed: false });
 
   const getCompetitionCount = async (orgId) => {
     if (!supabase) return 0;
@@ -99,7 +99,7 @@ export default function OrganizationsManager() {
     setIsSubmitting(true);
     try {
       const { data, error } = await supabase.from('organizations')
-        .insert({ name: formData.name.trim(), slug: generateSlug(formData.name), description: formData.description.trim(), logo_url: formData.logo_url })
+        .insert({ name: formData.name.trim(), slug: generateSlug(formData.name), description: formData.description.trim(), logo_url: formData.logo_url, is_managed: formData.is_managed })
         .select().single();
       if (error) {
         toast.error(error.code === '23505' ? 'An organization with this name already exists' : error.message);
@@ -119,7 +119,7 @@ export default function OrganizationsManager() {
     setIsSubmitting(true);
     try {
       const { error } = await supabase.from('organizations')
-        .update({ name: formData.name.trim(), description: formData.description.trim(), logo_url: formData.logo_url, updated_at: new Date().toISOString() })
+        .update({ name: formData.name.trim(), description: formData.description.trim(), logo_url: formData.logo_url, is_managed: formData.is_managed, updated_at: new Date().toISOString() })
         .eq('id', selectedOrg.id);
       if (error) throw error;
       toast.success('Organization updated successfully');
@@ -147,9 +147,9 @@ export default function OrganizationsManager() {
     } finally { setIsSubmitting(false); }
   };
 
-  const resetForm = () => setFormData({ name: '', description: '', logo_url: '' });
+  const resetForm = () => setFormData({ name: '', description: '', logo_url: '', is_managed: false });
   const openCreateModal = () => { resetForm(); setSelectedOrg(null); setModalMode('create'); };
-  const openEditModal = (org) => { setSelectedOrg(org); setFormData({ name: org.name, description: org.description || '', logo_url: org.logo_url || '' }); setModalMode('edit'); };
+  const openEditModal = (org) => { setSelectedOrg(org); setFormData({ name: org.name, description: org.description || '', logo_url: org.logo_url || '', is_managed: !!org.is_managed }); setModalMode('edit'); };
   const closeFormModal = () => { setModalMode(null); setSelectedOrg(null); resetForm(); };
 
   const handleExpandRow = async (row) => {
@@ -270,6 +270,21 @@ export default function OrganizationsManager() {
           <FormField label="Description">
             <TextArea value={formData.description} onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))} placeholder="Brief description of the organization" rows={3} />
           </FormField>
+        </div>
+
+        <div style={{ marginTop: spacing.lg }}>
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: spacing.sm, cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={formData.is_managed}
+              onChange={(e) => setFormData(prev => ({ ...prev, is_managed: e.target.checked }))}
+              style={{ marginTop: 3, accentColor: colors.gold.primary, flexShrink: 0 }}
+            />
+            <span style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary, lineHeight: 1.5 }}>
+              <span style={{ color: colors.text.primary, fontWeight: typography.fontWeight.medium }}>Company-run (managed)</span>
+              {' — '}competitions under this org skip the on-platform Host Agreement and Stripe payout setup. The agreement is signed off-platform and payouts settle to the company Stripe account.
+            </span>
+          </label>
         </div>
       </FormModal>
 

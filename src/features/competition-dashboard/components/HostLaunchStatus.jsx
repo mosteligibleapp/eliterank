@@ -48,13 +48,17 @@ export default function HostLaunchStatus({ competition, rulesComplete, onRefresh
 
   const goTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
-  const agreementOk = hasAcceptedCurrentAgreement(competition.agreement);
-  const stripeOk = competition.connect?.kycStatus === 'verified' && !!competition.connect?.chargesEnabled;
+  // Company-run ("house") competitions: the Host Agreement is signed off-platform
+  // and payouts settle to the company Stripe account, so the on-platform
+  // agreement + Stripe-Connect/KYC gates don't apply.
+  const managed = !!competition.managed;
+  const agreementOk = managed || hasAcceptedCurrentAgreement(competition.agreement);
+  const stripeOk = managed || (competition.connect?.kycStatus === 'verified' && !!competition.connect?.chargesEnabled);
   const rulesOk = !!rulesComplete;
   // Submit-for-approval gate: sign the Host Agreement. Hosts review/edit their
   // competition in the summary right below this card (no separate page), and
-  // Stripe KYC comes later at publish.
-  const gates = [
+  // Stripe KYC comes later at publish. Managed competitions have no gate here.
+  const gates = managed ? [] : [
     { ok: agreementOk, Icon: FileText, label: 'Review & sign the Host Agreement', action: () => goTo('host-agreement-card') },
   ];
   const allGates = agreementOk;
@@ -120,7 +124,9 @@ export default function HostLaunchStatus({ competition, rulesComplete, onRefresh
         {status === 'draft' && (
           <>
             <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, marginBottom: spacing.lg }}>
-              Sign the Host Agreement and review your competition summary below, then submit for approval. <strong>Some details lock once you submit.</strong>
+              {managed
+                ? <>Review your competition summary below, then submit for approval. <strong>Some details lock once you submit.</strong></>
+                : <>Sign the Host Agreement and review your competition summary below, then submit for approval. <strong>Some details lock once you submit.</strong></>}
             </p>
             {gates.map((g) => (
               <button
@@ -284,16 +290,19 @@ export default function HostLaunchStatus({ competition, rulesComplete, onRefresh
                   <ChevronRight size={16} style={{ color: colors.gold.primary, flexShrink: 0 }} />
                 </button>
 
-                {/* Stripe KYC */}
-                <button
-                  onClick={stripeOk ? undefined : () => goTo('host-connect-card')}
-                  disabled={stripeOk}
-                  style={{ ...rowStyle(!stripeOk), ...(stripeOk ? { background: 'transparent', border: '1px solid transparent', color: colors.text.primary } : {}) }}
-                >
-                  {stripeOk ? <CheckCircle size={16} style={{ color: colors.status.success, flexShrink: 0 }} /> : <Circle size={16} style={{ color: colors.text.muted, flexShrink: 0 }} />}
-                  <span style={{ flex: 1 }}>Complete Stripe identity verification (KYC)</span>
-                  {!stripeOk && <ChevronRight size={16} style={{ color: colors.gold.primary, flexShrink: 0 }} />}
-                </button>
+                {/* Stripe KYC — skipped for managed (company-run) competitions,
+                    whose payouts settle to the company Stripe account. */}
+                {!managed && (
+                  <button
+                    onClick={stripeOk ? undefined : () => goTo('host-connect-card')}
+                    disabled={stripeOk}
+                    style={{ ...rowStyle(!stripeOk), ...(stripeOk ? { background: 'transparent', border: '1px solid transparent', color: colors.text.primary } : {}) }}
+                  >
+                    {stripeOk ? <CheckCircle size={16} style={{ color: colors.status.success, flexShrink: 0 }} /> : <Circle size={16} style={{ color: colors.text.muted, flexShrink: 0 }} />}
+                    <span style={{ flex: 1 }}>Complete Stripe identity verification (KYC)</span>
+                    {!stripeOk && <ChevronRight size={16} style={{ color: colors.gold.primary, flexShrink: 0 }} />}
+                  </button>
+                )}
               </div>
 
               {/* Reviewed-and-ready confirmation */}

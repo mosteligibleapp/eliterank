@@ -173,14 +173,26 @@ export default function OverviewTab({
           <HostLaunchStatus competition={competition} rulesComplete={rulesComplete} onRefresh={onRefresh} onNavigateToTab={onNavigateToTab} />
           <LaunchRoadmap competition={competition} onNavigateToTab={onNavigateToTab} />
           <CompetitionSummaryCard competition={competition} onNavigateToTab={onNavigateToTab} onRefresh={onRefresh} />
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? spacing.lg : spacing.xl, alignItems: 'start' }}>
-            <div id="host-agreement-card">
-              <HostAgreementCard agreement={competition?.agreement} organizationId={competition?.organizationId} onAccepted={onRefresh} />
+          {competition?.managed ? (
+            <Panel title="Agreement & payouts" icon={FileText} style={{ marginBottom: 0 }}>
+              <div style={{ padding: spacing.xl }}>
+                <p style={{ color: colors.text.secondary, fontSize: typography.fontSize.sm, lineHeight: 1.5, margin: 0 }}>
+                  This competition is run by{' '}
+                  <strong style={{ color: colors.text.primary }}>{competition.organizationName || 'the EliteRank team'}</strong>.
+                  The Host Agreement and payouts are handled off-platform — there's nothing to sign or connect here.
+                </p>
+              </div>
+            </Panel>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? spacing.lg : spacing.xl, alignItems: 'start' }}>
+              <div id="host-agreement-card">
+                <HostAgreementCard agreement={competition?.agreement} organizationId={competition?.organizationId} onAccepted={onRefresh} />
+              </div>
+              <div id="host-connect-card">
+                <HostConnectCard connect={competition?.connect} organizationId={competition?.organizationId} locked={!hasAcceptedCurrentAgreement(competition?.agreement)} />
+              </div>
             </div>
-            <div id="host-connect-card">
-              <HostConnectCard connect={competition?.connect} organizationId={competition?.organizationId} locked={!hasAcceptedCurrentAgreement(competition?.agreement)} />
-            </div>
-          </div>
+          )}
         </>
       )}
       {mode === 'activity' && (
