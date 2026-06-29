@@ -44,6 +44,34 @@ export async function setupDefaultBonusTasks(competitionId) {
 }
 
 /**
+ * Turn the whole bonus-votes feature on or off for a competition (master
+ * switch). Hosts may toggle this until voting begins; once off, awards are
+ * refused server-side and contestants see no bonus tasks.
+ */
+export async function setBonusVotesEnabled(competitionId, enabled) {
+  if (!supabase || !competitionId) {
+    return { success: false, error: 'Missing required parameters' };
+  }
+
+  try {
+    const { error } = await supabase
+      .from('competitions')
+      .update({ bonus_votes_enabled: !!enabled })
+      .eq('id', competitionId);
+
+    if (error) {
+      console.error('Error updating bonus votes enabled:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error('Error updating bonus votes enabled:', err);
+    return { success: false, error: 'Failed to update bonus votes setting' };
+  }
+}
+
+/**
  * Get bonus vote tasks and completion status for a contestant
  */
 export async function getBonusVoteStatus(competitionId, contestantId) {

@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Trash2, Edit2, CheckCircle, Circle, XCircle, Check, X, Clock, Eye, Users, MapPin, Gift } from 'lucide-react';
+import { Plus, Trash2, Edit2, CheckCircle, Circle, XCircle, Check, X, Clock, Eye, Users, MapPin, Gift, Lock } from 'lucide-react';
 import { Button, Badge, Avatar, Panel } from '../../../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../../../styles/theme';
 import { isSupabaseConfigured } from '../../../../../lib/supabase';
+import { hasVotingBegun } from '../../../../../utils/competitionPhase';
 import {
   getBonusVoteTasks,
   setupDefaultBonusTasks,
@@ -15,6 +16,7 @@ import {
   getHostManagedTaskContestants,
   awardHostManagedTask,
   revokeHostManagedTask,
+  setBonusVotesEnabled,
 } from '../../../../../lib/bonusVotes';
 import CustomBonusTaskModal from '../../../../../components/modals/CustomBonusTaskModal';
 import ContestantViewPreviewModal from '../../../../../components/modals/ContestantViewPreviewModal';
@@ -25,6 +27,7 @@ import ContestantViewPreviewModal from '../../../../../components/modals/Contest
  * host-confirmed (attendance-style) tasks. Owns its own data loading.
  */
 export default function BonusVotesSection({
+  competition,
   competitionId,
   isMobile,
   focusId,
@@ -39,6 +42,18 @@ export default function BonusVotesSection({
   const [bonusStats, setBonusStats] = useState(null);
   const [bonusLoading, setBonusLoading] = useState(false);
   const [settingUp, setSettingUp] = useState(false);
+  // Master on/off switch for the whole bonus-votes feature. Mirrored locally
+  // for an instant toggle, then persisted on the competition row.
+  const [bonusEnabled, setBonusEnabled] = useState(competition?.bonusVotesEnabled !== false);
+  const [togglingBonus, setTogglingBonus] = useState(false);
+
+  useEffect(() => {
+    setBonusEnabled(competition?.bonusVotesEnabled !== false);
+  }, [competition?.bonusVotesEnabled]);
+
+  // The master switch locks once voting begins — by then contestants may
+  // already be earning bonus votes, so it can't be pulled.
+  const bonusToggleLocked = hasVotingBegun(competition);
 
   // Custom task modal state
   const [showCustomTaskModal, setShowCustomTaskModal] = useState(false);
@@ -88,6 +103,26 @@ export default function BonusVotesSection({
     await setupDefaultBonusTasks(competitionId);
     await loadBonusTasks();
     setSettingUp(false);
+  };
+
+  const handleToggleBonusEnabled = async () => {
+    if (!competitionId || togglingBonus) return;
+    if (bonusToggleLocked) {
+      toast?.error?.('Bonus votes can no longer be turned off once voting has begun.');
+      return;
+    }
+    const next = !bonusEnabled;
+    setTogglingBonus(true);
+    setBonusEnabled(next); // optimistic
+    const result = await setBonusVotesEnabled(competitionId, next);
+    if (result?.success) {
+      toast?.success?.(next ? 'Bonus votes turned on' : 'Bonus votes turned off');
+      onRefresh?.();
+    } else {
+      setBonusEnabled(!next); // revert
+      toast?.error?.(result?.error || 'Could not update bonus votes setting.');
+    }
+    setTogglingBonus(false);
   };
 
   const handleToggleBonusTask = async (taskId, currentEnabled) => {
@@ -206,7 +241,51 @@ export default function BonusVotesSection({
         style={style}
       >
         <div style={{ padding: isMobile ? spacing.md : spacing.xl }}>
-          {bonusLoading ? (
+          {/* Master on/off switch. Editable until voting begins. */}
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md,
+            padding: spacing.md, marginBottom: spacing.lg,
+            background: colors.background.secondary, borderRadius: borderRadius.lg,
+            border: `1px solid ${colors.border.primary}`,
+          }}>
+            <div style={{ minWidth: 0 }}>
+              <p style={{ fontWeight: typography.fontWeight.medium, fontSize: typography.fontSize.base, marginBottom: 2 }}>
+                Bonus votes {bonusEnabled ? 'on' : 'off'}
+              </p>
+              <p style={{ color: colors.text.muted, fontSize: typography.fontSize.xs }}>
+                {bonusToggleLocked
+                  ? 'Locked — voting has begun, so bonus votes can no longer be turned off.'
+                  : 'Reward contestants for completing tasks. You can turn this off until voting begins.'}
+              </p>
+            </div>
+            <button
+              onClick={handleToggleBonusEnabled}
+              disabled={togglingBonus || bonusToggleLocked}
+              title={bonusToggleLocked ? 'Locked once voting begins' : (bonusEnabled ? 'Turn bonus votes off' : 'Turn bonus votes on')}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: spacing.xs, flexShrink: 0,
+                padding: `${spacing.xs} ${spacing.md}`, borderRadius: borderRadius.md,
+                background: bonusEnabled ? 'rgba(34,197,94,0.15)' : 'rgba(100,100,100,0.15)',
+                border: `1px solid ${bonusEnabled ? colors.status.success : colors.border.primary}`,
+                color: bonusEnabled ? colors.status.success : colors.text.muted,
+                cursor: (togglingBonus || bonusToggleLocked) ? 'not-allowed' : 'pointer',
+                opacity: bonusToggleLocked ? 0.6 : 1,
+                fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.medium,
+              }}
+            >
+              {bonusToggleLocked ? <Lock size={16} /> : bonusEnabled ? <CheckCircle size={16} /> : <XCircle size={16} />}
+              {bonusEnabled ? 'On' : 'Off'}
+            </button>
+          </div>
+
+          {!bonusEnabled ? (
+            <div style={{ textAlign: 'center', padding: spacing.xl }}>
+              <Gift size={48} style={{ marginBottom: spacing.md, opacity: 0.4, color: colors.text.muted }} />
+              <p style={{ color: colors.text.secondary }}>
+                Bonus votes are turned off for this competition. Contestants won't see bonus tasks or earn bonus votes{bonusToggleLocked ? '' : ' until you turn this back on'}.
+              </p>
+            </div>
+          ) : bonusLoading ? (
             <p style={{ color: colors.text.secondary, textAlign: 'center', padding: spacing.lg }}>
               Loading bonus vote tasks...
             </p>

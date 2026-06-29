@@ -98,6 +98,7 @@ export default function EngagementTab({
       />
 
       <BonusVotesSection
+        competition={competition}
         competitionId={competitionId}
         isMobile={isMobile}
         focusId={focusId}
