@@ -606,21 +606,16 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
       prevRoundEnd = roundEnd;
     });
 
-    if (finale && prevRoundEnd && finale < prevRoundEnd) {
-      validationErrors.push('Finale date must be after the last round ends');
-    }
-
-    // Finale is tied to the end of judging: between 1 minute and 24 hours after.
-    const judgingRound = votingRounds.find((r) => (r.judge_weight || 0) > 0);
-    if (judgingRound?.end_date && finale) {
-      const jEnd = new Date(judgingRound.end_date).getTime();
+    // The finale (the official close date) just needs to land after the last
+    // round ends — that's when winners are decided. We measure against the last
+    // round shown here (the same date the host can see and edit), not a hidden
+    // judging round, and we require a small minimum gap so they don't collide.
+    // There is no upper bound: a host can hold the finale event days later.
+    if (finale && prevRoundEnd) {
+      const lastEnd = prevRoundEnd.getTime();
       const fin = finale.getTime();
-      if (!Number.isNaN(jEnd) && !Number.isNaN(fin)) {
-        if (fin < jEnd + 60000) {
-          validationErrors.push('Finale must be at least 1 minute after judging ends.');
-        } else if (fin > jEnd + 24 * 60 * 60 * 1000) {
-          validationErrors.push('Finale can be at most 24 hours after judging ends.');
-        }
+      if (!Number.isNaN(lastEnd) && !Number.isNaN(fin) && fin < lastEnd + 60000) {
+        validationErrors.push('Finale must be at least 1 minute after the last round ends.');
       }
     }
 
@@ -825,7 +820,7 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
   // voting round — that round becomes the determining round with judges at the
   // 60% skill-contest floor (the "blend" layout JudgingPanel offers), so there
   // is never a separate judging round. The finale is set 1 hour after that
-  // round ends (inside the 1-min→24-hr window the validator enforces). Anchored
+  // round ends (comfortably past the validator's 1-min minimum gap). Anchored
   // to the recommended first-voting start (nominations close + 5 days); falls
   // back to ~4 weeks out if the nomination close date isn't set yet.
   const buildRecommendedSchedule = () => {

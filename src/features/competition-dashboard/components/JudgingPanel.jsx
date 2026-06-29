@@ -450,7 +450,7 @@ function RoundWeightRow({ round, competitionId, votingRounds, onUpdate, onRefres
     try {
       await supabase.from('voting_rounds').update({ start_date: start || null, end_date: end || null }).eq('id', round.id);
       // The finale is tied to the end of judging: default it to 1 minute after
-      // (host can push it up to 24h later in Voting Details).
+      // (host can move it later in Voting Details).
       if (competitionId && end) {
         const d = new Date(end);
         if (!Number.isNaN(d.getTime())) {
@@ -595,7 +595,7 @@ function RoundWeightRow({ round, competitionId, votingRounds, onUpdate, onRefres
             </Button>
           </div>
           <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: spacing.xs, lineHeight: 1.4 }}>
-            Saving sets the finale to 1 minute after judging ends. You can push it up to 24 hours later in Voting Details.
+            Saving sets the finale to 1 minute after judging ends. You can move it later in Voting Details.
           </p>
         </div>
       )}
