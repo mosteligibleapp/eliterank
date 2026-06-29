@@ -134,10 +134,15 @@ export default function SuperAdminPage({ onLogout, user, profile }) {
               onOpenHostAssignment={() => handleOpenHostAssignment(null)}
               onViewPublicSite={() => {
                 const orgSlug = viewingCompetition?.organization?.slug || viewingCompetition?.organization_slug || 'most-eligible';
-                const cityName = viewingCompetition?.city?.name || viewingCompetition?.city_name || viewingCompetition?.city || 'competition';
-                const citySlug = cityName.toLowerCase().replace(/\s+/g, '-').replace(/,/g, '');
-                const year = viewingCompetition?.season || new Date().getFullYear();
-                const path = `/${orgSlug}/${citySlug}-${year}`;
+                // Use the competition's real DB slug; fall back to the always-valid
+                // ID route. (The old citySlug-year guess didn't match the stored slug.)
+                const base = viewingCompetition?.slug
+                  ? `/${orgSlug}/${viewingCompetition.slug}`
+                  : `/${orgSlug}/id/${viewingCompetition.id}`;
+                // Before publish the live page isn't public, so open the host
+                // coming-soon preview (super admins are allowed to view it).
+                const preLaunch = ['draft', 'pending_approval', 'approved'].includes(viewingCompetition?.status);
+                const path = preLaunch ? `${base}${base.includes('?') ? '&' : '?'}preview=coming-soon` : base;
                 window.open(path, '_blank');
               }}
             />
