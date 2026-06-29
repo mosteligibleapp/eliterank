@@ -9,6 +9,7 @@ import { useCompetitionPublic } from '../hooks/useCompetitionPublic';
 import { useActivityFeed } from '../hooks/useActivityFeed';
 import { useLeaderboard } from '../hooks/useLeaderboard';
 import useCountdown from '../hooks/useCountdown';
+import { useAuthStore } from '../stores';
 
 // Create context
 const PublicCompetitionContext = createContext(null);
@@ -63,10 +64,39 @@ export function PublicCompetitionProvider({
     refetch: refetchCompetition,
   } = competitionData;
 
+  // Managers (super admin, or this competition's own host/co-host) can preview
+  // their competition before it's public — without needing the ?preview= param.
+  // Non-managers still hit the normal public gate.
+  const user = useAuthStore((s) => s.user);
+  const profile = useAuthStore((s) => s.profile);
+  const isManagerViewer = useMemo(() => {
+    if (profile?.is_super_admin) return true;
+    const uid = user?.id;
+    if (!uid || !competition) return false;
+    if (competition.host_id === uid) return true;
+    return (competition.competition_co_hosts || []).some((ch) => ch.profile?.id === uid);
+  }, [profile?.is_super_admin, user?.id, competition]);
+
+  // Resolve the preview mode actually in effect.
+  // - Previewing a NOT-yet-public competition is manager-only (super admin or
+  //   this competition's host/co-host), whether triggered implicitly or via an
+  //   explicit ?preview=. Non-managers stay gated. With no explicit mode, a
+  //   manager defaults to the coming-soon teaser (what the public will see once
+  //   it's published).
+  // - For an already-public competition there's nothing to gate, so honor an
+  //   explicit ?preview= as before (e.g. a host checking a future phase).
+  const effectivePreviewMode = useMemo(() => {
+    if (realPhase && !realPhase.isPublic) {
+      if (!isManagerViewer) return null;
+      return previewMode || 'coming-soon';
+    }
+    return previewMode;
+  }, [previewMode, isManagerViewer, realPhase]);
+
   // In preview mode, synthesize a phase so the selected view renders even
   // when the competition is in draft/coming-soon/nominations state.
   const phase = useMemo(() => {
-    if (!previewMode || !realPhase) return realPhase;
+    if (!effectivePreviewMode || !realPhase) return realPhase;
 
     // Pick the first voting round (or a placeholder) so countdowns/labels work
     const previewRound = (votingRounds && votingRounds[0]) || {
@@ -78,7 +108,7 @@ export function PublicCompetitionProvider({
       round_type: 'voting',
     };
 
-    if (previewMode === 'between-rounds') {
+    if (effectivePreviewMode === 'between-rounds') {
       return {
         ...realPhase,
         phase: 'between-rounds',
@@ -91,7 +121,7 @@ export function PublicCompetitionProvider({
       };
     }
 
-    if (previewMode === 'nominations') {
+    if (effectivePreviewMode === 'nominations') {
       return {
         ...realPhase,
         phase: 'nominations',
@@ -103,7 +133,7 @@ export function PublicCompetitionProvider({
       };
     }
 
-    if (previewMode === 'coming-soon') {
+    if (effectivePreviewMode === 'coming-soon') {
       return {
         ...realPhase,
         phase: 'coming-soon',
@@ -115,7 +145,7 @@ export function PublicCompetitionProvider({
       };
     }
 
-    if (previewMode === 'results' || previewMode === 'winners' || previewMode === 'completed') {
+    if (effectivePreviewMode === 'results' || effectivePreviewMode === 'winners' || effectivePreviewMode === 'completed') {
       return {
         ...realPhase,
         phase: 'results',
@@ -139,7 +169,7 @@ export function PublicCompetitionProvider({
       roundNumber: previewRound.round_order || 1,
       endsAt: previewRound.end_date || null,
     };
-  }, [previewMode, realPhase, votingRounds, nominationPeriods]);
+  }, [effectivePreviewMode, realPhase, votingRounds, nominationPeriods]);
 
   // Leaderboard data (only fetch if we have a competition). The danger zone
   // (contestants at risk of elimination) is derived from the current round's
@@ -261,9 +291,10 @@ export function PublicCompetitionProvider({
       hasMoreActivities: activityData.hasMore,
       loadMoreActivities: activityData.loadMore,
 
-      // Preview mode (host previewing a phase before it goes live)
-      isPreview: Boolean(previewMode),
-      previewMode,
+      // Preview mode (host previewing a phase before it goes live). Managers also
+      // get an implicit preview of their own not-yet-public competition.
+      isPreview: Boolean(effectivePreviewMode),
+      previewMode: effectivePreviewMode,
 
       // Modal state
       selectedContestant,
@@ -306,7 +337,7 @@ export function PublicCompetitionProvider({
       nominationPeriods,
       leaderboardData,
       activityData,
-      previewMode,
+      effectivePreviewMode,
       selectedContestant,
       showVoteModal,
       showProfileModal,
