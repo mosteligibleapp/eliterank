@@ -967,7 +967,10 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
     const pairs = votingRounds
       .map((r, i) => ({ r, d: roundDisplayValues[i] }))
       .filter(({ r }) => (r.round_type || 'voting') !== 'judging');
-    const rounds = pairs.map(({ r }) => ({ ...r, round_type: 'voting', judge_weight: 0 }));
+    // Only clear weights — preserve each round's existing type (don't demote a
+    // 'finale'/'resurrection' round to 'voting'). The judged decider rides on
+    // the last round, whatever its type.
+    const rounds = pairs.map(({ r }) => ({ ...r, judge_weight: 0 }));
     if (rounds.length) rounds[rounds.length - 1] = { ...rounds[rounds.length - 1], judge_weight: w };
     setVotingRounds(rounds);
     setRoundDisplayValues(pairs.map(({ d }) => d));
