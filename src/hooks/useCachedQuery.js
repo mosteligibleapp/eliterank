@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { getCached, setCache, invalidateTable, dedupeRequest } from '../lib/queryCache';
+import { PROFILE_PUBLIC_COLS, ORG_PUBLIC_COLS } from '../constants/safeColumns';
 
 /**
  * Hook for cached Supabase queries
@@ -143,7 +144,7 @@ export function useCities() {
 }
 
 export function useOrganizations() {
-  return useStaticData('organizations', '*', { column: 'name', ascending: true });
+  return useStaticData('organizations', ORG_PUBLIC_COLS, { column: 'name', ascending: true });
 }
 
 export function useCategories() {
@@ -169,7 +170,7 @@ export function useDemographics() {
 export function useCompetitions(filters = {}) {
   return useCachedQuery({
     table: 'competitions',
-    select: '*, organization:organizations(*), city:cities(*)',
+    select: `*, organization:organizations(${ORG_PUBLIC_COLS}), city:cities(*)`,
     eq: filters,
     order: { column: 'created_at', ascending: false },
     ttl: 30000,
@@ -263,7 +264,7 @@ export function useCompetitionRules(competitionId) {
 export function useProfile(profileId) {
   return useCachedQuery({
     table: 'profiles',
-    select: '*',
+    select: PROFILE_PUBLIC_COLS,
     eq: profileId ? { id: profileId } : undefined,
     single: true,
     ttl: 120000, // 2 minutes

@@ -6,6 +6,7 @@ import {
 import { Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { supabase } from '../../../lib/supabase';
+import { ORG_PUBLIC_COLS } from '../../../constants/safeColumns';
 import { STATUS_CONFIG, COMPETITION_STATUS, US_STATES } from '../../../types/competition';
 import { SkeletonPulse, SkeletonCard } from '../../../components/common/Skeleton';
 import { getOrgLogo } from '../../../lib/storageImage';
@@ -55,7 +56,7 @@ export default function CityPage() {
         .from('competitions')
         .select(`
           *,
-          organization:organizations(*)
+          organization:organizations(${ORG_PUBLIC_COLS})
         `)
         .eq('city_id', cityData.id)
         .in('status', [COMPETITION_STATUS.PUBLISH, COMPETITION_STATUS.LIVE, COMPETITION_STATUS.COMPLETED])

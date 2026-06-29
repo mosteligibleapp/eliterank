@@ -232,14 +232,11 @@ export default function NominationForm({ city, competitionId, onClose, formConfi
     setError('');
 
     try {
-      // Check if a profile already exists for this email so we can link user_id
-      const emailLower = selfData.email.trim().toLowerCase();
-      const { data: existingProfile } = await supabase
-        .from('profiles')
-        .select('id')
-        .ilike('email', emailLower)
-        .maybeSingle();
-
+      // We intentionally do NOT look up an existing profile by email here.
+      // The anon key cannot read or filter profiles.email (PII lockdown,
+      // migration 103), and doing so is exactly the email-probing we're closing
+      // off. The nominee's user_id is linked when they claim / log in — handled
+      // by the claim flow and the nominees_update_by_email RLS policy.
       const { error: dbError } = await supabase
         .from('nominees')
         .insert({
@@ -249,7 +246,7 @@ export default function NominationForm({ city, competitionId, onClose, formConfi
           instagram: selfData.instagram.trim() || null,
           nominated_by: 'self',
           status: 'pending',
-          user_id: existingProfile?.id || null,
+          user_id: null,
           eligibility_answers: selfData.answers,
         });
 

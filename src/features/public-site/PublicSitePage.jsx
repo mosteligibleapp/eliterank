@@ -4,6 +4,7 @@ import { Button, Badge, OrganizationLogo } from '../../components/ui';
 import { colors, spacing, borderRadius, typography, transitions, shadows, gradients, components, styleHelpers } from '../../styles/theme';
 import { useResponsive } from '../../hooks/useResponsive';
 import { supabase } from '../../lib/supabase';
+import { PROFILE_PUBLIC_COLS } from '../../constants/safeColumns';
 import { COMPETITION_STATUSES } from '../../utils/competitionPhase';
 import { useSponsors, useVotingRounds, useProfile } from '../../hooks/useCachedQuery';
 import ContestantsTab from './components/ContestantsTab';
@@ -139,7 +140,7 @@ export default function PublicSitePage({
         // (2x) badge follows the host's calendar day, not UTC. See migration 051.
         const [contestantsResult, eventsResult, announcementsResult, judgesResult, doubleDayResult] = await Promise.all([
           // Join with profiles to get full profile data when contestant is linked to a user
-          supabase.from('contestants').select('*, profile:profiles!user_id(*)').eq('competition_id', competitionId).order('votes', { ascending: false }),
+          supabase.from('contestants').select(`*, profile:profiles!user_id(${PROFILE_PUBLIC_COLS})`).eq('competition_id', competitionId).order('votes', { ascending: false }),
           supabase.from('events').select('*').eq('competition_id', competitionId).order('date'),
           supabase.from('announcements').select('*').eq('competition_id', competitionId).order('pinned', { ascending: false }).order('published_at', { ascending: false }),
           supabase.rpc('get_competition_judges', { p_competition_id: competitionId }),
@@ -297,7 +298,7 @@ export default function PublicSitePage({
     try {
       const { data: contestantsData } = await supabase
         .from('contestants')
-        .select('*, profile:profiles!user_id(*)')
+        .select(`*, profile:profiles!user_id(${PROFILE_PUBLIC_COLS})`)
         .eq('competition_id', competitionId)
         .order('votes', { ascending: false });
 

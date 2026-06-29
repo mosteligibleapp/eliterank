@@ -6,11 +6,12 @@ import {
   calculateVoteRevenue,
 } from '../utils/calculatePrizePool';
 import { getCompetitionDefaults } from '../utils/competitionDefaults';
+import { ORG_PUBLIC_COLS } from '../constants/safeColumns';
 
 // Shared select query for competition data
 const COMPETITION_SELECT = `
   *,
-  organization:organizations(*),
+  organization:organizations(${ORG_PUBLIC_COLS}),
   city:cities(*),
   category:categories(*),
   demographic:demographics(*),
@@ -104,7 +105,7 @@ export function useCompetitionPublic(orgSlug, competitionSlug, competitionId) {
       // Get organization by slug
       const { data: orgData, error: orgError } = await supabase
         .from('organizations')
-        .select('*')
+        .select(ORG_PUBLIC_COLS)
         .eq('slug', orgSlug)
         .single();
 
