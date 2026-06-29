@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, memo } from 'react';
 import {
   Calendar, Vote, Plus, Trash2, AlertTriangle, Save,
-  Clock, Activity, Trophy, Archive, FileEdit, Lock, Info, Sparkles
+  Clock, Activity, Trophy, Archive, FileEdit, Lock, Info, Sparkles, Award
 } from 'lucide-react';
 import { Button, Badge } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
@@ -221,11 +221,25 @@ function fromDateInput(local) {
 // One voting-round card, memoized so editing a field only re-renders that row
 // (not every card on each keystroke). Props are referentially stable: `round`
 // keeps its identity for untouched rows, and onUpdate/onRemove are useCallback'd.
-const VotingRoundCard = memo(function VotingRoundCard({ round, index, pos, isLastRound, isMobile, onUpdate, onRemove }) {
+const VotingRoundCard = memo(function VotingRoundCard({ round, index, pos, isLastRound, isMobile, usesJudges, onUpdate, onRemove }) {
   const roundConfig = ROUND_TYPE_CONFIG[round.round_type] || ROUND_TYPE_CONFIG.voting;
   const judgeWeight = round.judge_weight || 0;
-  const decides = isLastRound; // the final round decides winners
-  const accentColor = decides ? colors.gold.primary : roundConfig.color;
+  const isJudgingType = (round.round_type || 'voting') === 'judging';
+  // "Judged" is a property of the round itself (its judge_weight / type) — never
+  // of its position. Tying it to position is what made judging look like it
+  // "disappeared" when a host added a round after the judged one.
+  const judged = judgeWeight > 0 || isJudgingType;
+  const judgesOnly = isJudgingType || judgeWeight >= 100;
+  const decides = isLastRound; // the final (last) round is where winners are crowned
+  // Flag the confusing state directly on the card: a judged competition whose
+  // final round has no judging set up yet.
+  const judgingMissingOnFinal = usesJudges && decides && !judged;
+  const accentColor = decides || judged ? colors.gold.primary : roundConfig.color;
+  const tagBase = {
+    display: 'inline-flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap',
+    padding: `2px ${spacing.sm}`, borderRadius: borderRadius.sm,
+    fontSize: '10px', fontWeight: typography.fontWeight.semibold,
+  };
   return (
     <div
       style={{
@@ -249,13 +263,18 @@ const VotingRoundCard = memo(function VotingRoundCard({ round, index, pos, isLas
             style={{ ...inputStyle, background: 'transparent', border: 'none', padding: 0, fontWeight: typography.fontWeight.medium, flex: 1, minWidth: 0 }}
           />
           {decides && (
-            <span style={{
-              display: 'inline-flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap',
-              padding: `2px ${spacing.sm}`, borderRadius: borderRadius.sm,
-              background: 'rgba(212,175,55,0.12)', border: `1px solid ${colors.gold.primary}55`,
-              color: colors.gold.primary, fontSize: '10px', fontWeight: typography.fontWeight.semibold,
-            }}>
-              <Trophy size={11} /> {judgeWeight > 0 ? `Decides winners · judged ${judgeWeight}%` : 'Decides winners'}
+            <span style={{ ...tagBase, background: 'rgba(212,175,55,0.12)', border: `1px solid ${colors.gold.primary}55`, color: colors.gold.primary }}>
+              <Trophy size={11} /> Decides winners
+            </span>
+          )}
+          {judged && (
+            <span style={{ ...tagBase, background: 'rgba(212,175,55,0.12)', border: `1px solid ${colors.gold.primary}55`, color: colors.gold.primary }}>
+              <Award size={11} /> {judgesOnly ? 'Judges only' : `Judges ${judgeWeight}% · Votes ${100 - judgeWeight}%`}
+            </span>
+          )}
+          {judgingMissingOnFinal && (
+            <span style={{ ...tagBase, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.45)', color: '#ef4444' }}>
+              <AlertTriangle size={11} /> Judging not set
             </span>
           )}
         </div>
@@ -267,6 +286,24 @@ const VotingRoundCard = memo(function VotingRoundCard({ round, index, pos, isLas
           <Trash2 size={14} />
         </button>
       </div>
+
+      {(judged || judgingMissingOnFinal) && (
+        <p style={{
+          fontSize: '11px', lineHeight: 1.4, marginBottom: spacing.md,
+          display: 'flex', alignItems: 'flex-start', gap: spacing.xs,
+          color: judgingMissingOnFinal ? '#ef4444' : colors.text.muted,
+        }}>
+          <Info size={12} style={{ color: judgingMissingOnFinal ? '#ef4444' : colors.gold.primary, flexShrink: 0, marginTop: 1 }} />
+          <span>
+            {judgingMissingOnFinal
+              ? 'This is your final round, but judging isn’t set up yet. Choose how judges decide it in the '
+              : judgesOnly
+                ? 'Judges alone decide this round. Manage criteria in the '
+                : `Judges score this round alongside public votes (${judgeWeight}% judges · ${100 - judgeWeight}% votes). Manage the weight and criteria in the `}
+            <strong style={{ color: colors.text.secondary }}>Judging</strong> section below.
+          </span>
+        </p>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: spacing.md }}>
         <div>
@@ -325,21 +362,23 @@ const VotingRoundCard = memo(function VotingRoundCard({ round, index, pos, isLas
         </div>
       </div>
 
-      <div style={{ marginTop: spacing.md }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, cursor: 'pointer' }}>
-          <input
-            type="checkbox"
-            checked={!!round.votes_reset_at_start}
-            onChange={(e) => onUpdate(index, 'votes_reset_at_start', e.target.checked)}
-          />
-          <span style={{ fontSize: typography.fontSize.sm, color: colors.text.primary }}>
-            Reset votes when this round starts
-          </span>
-        </label>
-        <p style={{ fontSize: '10px', color: colors.text.muted, marginTop: '2px' }}>
-          Off (default): votes carry over and add up across rounds. On: surviving contestants restart at zero.
-        </p>
-      </div>
+      {!judgesOnly && (
+        <div style={{ marginTop: spacing.md }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={!!round.votes_reset_at_start}
+              onChange={(e) => onUpdate(index, 'votes_reset_at_start', e.target.checked)}
+            />
+            <span style={{ fontSize: typography.fontSize.sm, color: colors.text.primary }}>
+              Reset votes when this round starts
+            </span>
+          </label>
+          <p style={{ fontSize: '10px', color: colors.text.muted, marginTop: '2px' }}>
+            Off (default): votes carry over and add up across rounds. On: surviving contestants restart at zero.
+          </p>
+        </div>
+      )}
     </div>
   );
 });
@@ -798,21 +837,34 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
     const autoEndIso = autoStartIso
       ? new Date(new Date(autoStartIso).getTime() + 10 * 86400000).toISOString()
       : '';
-    setVotingRounds(prev => [
-      ...prev,
-      {
-        ...DEFAULT_VOTING_ROUND,
-        title: `${typeLabel} Round ${prev.filter(r => r.round_type === roundType).length + 1}`,
-        round_order: prev.length + 1,
-        round_type: roundType,
-        start_date: autoStartIso || DEFAULT_VOTING_ROUND.start_date || '',
-        end_date: autoEndIso || DEFAULT_VOTING_ROUND.end_date || null,
-      }
-    ]);
-    setRoundDisplayValues(prev => [...prev, {
+    const newRound = {
+      ...DEFAULT_VOTING_ROUND,
+      title: `${typeLabel} Round ${votingRounds.filter(r => r.round_type === roundType).length + 1}`,
+      round_order: votingRounds.length + 1,
+      round_type: roundType,
+      start_date: autoStartIso || DEFAULT_VOTING_ROUND.start_date || '',
+      end_date: autoEndIso || DEFAULT_VOTING_ROUND.end_date || null,
+    };
+    const newDisplay = {
       start_date: autoStartIso ? formatDateForDisplay(autoStartIso) : '',
       end_date: autoEndIso ? formatDateForDisplay(autoEndIso) : '',
-    }]);
+    };
+
+    // Keep judging glued to the FINAL round. In a judged competition, if the
+    // last round is the decider (it carries judge weight, or is a judges-only
+    // round), insert the new voting round *before* it so the decider stays last.
+    // Otherwise a new round would silently become the "final round" and strand
+    // judging mid-schedule — the exact behavior that made it look like judging
+    // vanished. Both parallel arrays are spliced at the same index.
+    const last = votingRounds[votingRounds.length - 1];
+    const lastIsDecider =
+      !!last && ((last.judge_weight || 0) > 0 || (last.round_type || 'voting') === 'judging');
+    const insertAt = roundType === 'voting' && usesJudges && lastIsDecider
+      ? votingRounds.length - 1
+      : votingRounds.length;
+
+    setVotingRounds(prev => [...prev.slice(0, insertAt), newRound, ...prev.slice(insertAt)]);
+    setRoundDisplayValues(prev => [...prev.slice(0, insertAt), newDisplay, ...prev.slice(insertAt)]);
   };
 
   // Build the recommended schedule: three contiguous 10-day voting rounds
@@ -1103,7 +1155,7 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
         </div>
         <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginBottom: spacing.sm }}>
           {usesJudges
-            ? 'These are the public-vote rounds. Judging (criteria, weight and dates) is set in the Judging section.'
+            ? 'Your full schedule, in order — the judging round is shown here too. The final round decides winners; set the judging criteria, weight and dates in the Judging section below.'
             : 'This competition is vote-based only. To add judges, change “How they win” in your competition details before submitting.'}
         </p>
         <p style={{ fontSize: typography.fontSize.xs, color: colors.gold.primary, marginBottom: spacing.md }}>
@@ -1132,14 +1184,23 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
         )}
 
         {(() => {
-        // The "Voting Rounds" list shows voting rounds only. A separate judging
-        // round (round_type 'judging') is owned by the Judging section — keep it
-        // in state so it still saves/validates, but don't render it here mixed
-        // in with voting rounds. Keep each row's real index for the handlers.
-        const displayRounds = votingRounds
-          .map((round, index) => ({ round, index }))
-          .filter(({ round }) => (round.round_type || 'voting') !== 'judging');
-        const hasSeparateJudging = votingRounds.some((r) => r.round_type === 'judging');
+        // Show the FULL schedule in one place — voting rounds and the judging
+        // round together, in order — so the host sees the whole timeline at a
+        // glance. (Judging criteria & weight are still managed in the Judging
+        // section; this list just makes the judging round visible in context.)
+        const displayRounds = votingRounds.map((round, index) => ({ round, index }));
+        // Where does judging actually live, and is it on the final round? When
+        // it isn't, the host hit exactly the confusing state we want to explain.
+        const judgedPos = displayRounds.findIndex(
+          ({ round }) => (round.judge_weight || 0) > 0 || (round.round_type || 'voting') === 'judging'
+        );
+        const judgingNotOnFinal =
+          usesJudges && judgedPos >= 0 && judgedPos !== displayRounds.length - 1;
+        const judgedRoundName =
+          judgedPos >= 0 ? (displayRounds[judgedPos].round.title || `Round ${judgedPos + 1}`) : '';
+        const finalRoundName = displayRounds.length
+          ? (displayRounds[displayRounds.length - 1].round.title || `Round ${displayRounds.length}`)
+          : '';
         return displayRounds.length === 0 ? (
           <div style={{
             textAlign: 'center',
@@ -1163,15 +1224,20 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
                 pos={pos}
                 isLastRound={pos === displayRounds.length - 1}
                 isMobile={isMobile}
+                usesJudges={usesJudges}
                 onUpdate={updateVotingRound}
                 onRemove={removeVotingRound}
               />
             ))}
           </div>
-          {hasSeparateJudging && (
-            <p style={{ fontSize: typography.fontSize.xs, color: colors.text.muted, marginTop: spacing.md, display: 'flex', alignItems: 'flex-start', gap: spacing.xs }}>
-              <Info size={13} style={{ color: colors.gold.primary, flexShrink: 0, marginTop: 2 }} />
-              <span>Your judging round runs after voting closes — its dates and weight are set in the <strong style={{ color: colors.text.secondary }}>Judging</strong> section.</span>
+          {judgingNotOnFinal && (
+            <p style={{ fontSize: typography.fontSize.xs, color: '#ef4444', marginTop: spacing.md, display: 'flex', alignItems: 'flex-start', gap: spacing.xs }}>
+              <AlertTriangle size={13} style={{ flexShrink: 0, marginTop: 2 }} />
+              <span>
+                Judging is set on <strong>{judgedRoundName}</strong>, but your final round is <strong>{finalRoundName}</strong>.
+                Judging should run on the final round (where winners are crowned). Move it in the{' '}
+                <strong style={{ color: colors.text.secondary }}>Judging</strong> section below.
+              </span>
             </p>
           )}
           </>

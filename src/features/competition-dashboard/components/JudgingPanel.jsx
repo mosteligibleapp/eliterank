@@ -143,6 +143,10 @@ export default function JudgingPanel({
   const lastVotingRound = votingTypeRounds.length ? votingTypeRounds[votingTypeRounds.length - 1] : null;
   const separateJudgingRound = sortedRounds.find((r) => r.round_type === 'judging') || null;
   const judgingMode = !judgingRound ? 'none' : (judgingRound.round_type === 'judging' ? 'separate' : 'blend');
+  // Blend judging should ride the LAST voting round. If the host added a round
+  // after it, judging is now on a non-final round — surface that here (it's the
+  // same mismatch the Voting Details list flags) so re-anchoring is one click.
+  const blendOffFinal = judgingMode === 'blend' && lastVotingRound && judgingRound && judgingRound.id !== lastVotingRound.id;
 
   // A separate judging round is always 100% judges. Normalize any stray value
   // below 100 (e.g. from an earlier build where it was adjustable). Guard on
@@ -383,6 +387,16 @@ export default function JudgingPanel({
               {judgingMode === 'none' && (
                 <p style={{ color: colors.status.error, fontSize: typography.fontSize.xs }}>
                   Your competition is judged — pick one of the layouts above to set up the judging round.
+                </p>
+              )}
+
+              {blendOffFinal && (
+                <p style={{ color: colors.status.error, fontSize: typography.fontSize.xs, display: 'flex', alignItems: 'flex-start', gap: spacing.xs }}>
+                  <span>
+                    Judging is on <strong>{judgingRound.title || `Round ${judgingRound.round_order || ''}`}</strong>, which is no longer your
+                    final round (<strong>{lastVotingRound.title || `Round ${lastVotingRound.round_order || ''}`}</strong>).
+                    Click <strong>“Judges score your final round”</strong> above to move it.
+                  </span>
                 </p>
               )}
 
