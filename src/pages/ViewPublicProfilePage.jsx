@@ -7,6 +7,7 @@
 import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { PROFILE_PUBLIC_COLS } from '../constants/safeColumns';
 import { getCompetitionUrl, getCompetitionUrlById } from '../utils/slugs';
 import { PageHeader } from '../components/ui';
 import ProfileSkeleton from '../components/skeletons/ProfileSkeleton';
@@ -45,7 +46,7 @@ export default function ViewPublicProfilePage() {
         const [profileResult, contestantResult, nomineeResult] = await Promise.all([
           supabase
             .from('profiles')
-            .select('id, first_name, last_name, bio, city, avatar_url, instagram, twitter, tiktok, linkedin, website, headline, occupation, age, username, interests, cover_image, gallery, intro_video_url, total_votes_received, total_competitions, wins, best_placement, fan_count, is_host, created_at, updated_at, onboarded_at')
+            .select(PROFILE_PUBLIC_COLS)
             .eq('id', profileId)
             .maybeSingle(),
           supabase

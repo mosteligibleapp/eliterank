@@ -31,7 +31,16 @@
 -- will error. The accompanying front-end change converts every
 -- anon-reachable `*`/embed on these tables to an explicit safe-column list.
 -- New sensitive columns are excluded by default (fail closed); add new SAFE
--- display columns to the GRANTs below when you add them.
+-- display columns to the GRANTs below when you add them. The front-end mirrors
+-- these lists in src/constants/safeColumns.js (PROFILE_PUBLIC_COLS /
+-- ORG_PUBLIC_COLS) — keep the two in sync.
+--
+-- EMERGENCY ROLLBACK (re-opens the exposure — use only if this breaks prod):
+--     grant select on public.profiles to anon;
+--     grant select on public.organizations to anon;
+-- That restores the previous (wide-open) behavior. The forward fix for any
+-- breakage is to add the missing column to the GRANTs below + safeColumns.js,
+-- not to roll back.
 
 begin;
 

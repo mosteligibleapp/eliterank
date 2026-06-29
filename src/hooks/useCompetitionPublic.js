@@ -6,11 +6,12 @@ import {
   calculateVoteRevenue,
 } from '../utils/calculatePrizePool';
 import { getCompetitionDefaults } from '../utils/competitionDefaults';
+import { ORG_PUBLIC_COLS } from '../constants/safeColumns';
 
 // Shared select query for competition data
 const COMPETITION_SELECT = `
   *,
-  organization:organizations(id, name, slug, logo, tagline, description, cover_image, total_competitions, total_cities, total_contestants, created_at, updated_at, logo_url, default_about_tagline, default_about_description, default_about_traits, default_age_range, default_requirement, default_theme_primary, default_theme_voting, default_theme_resurrection, header_logo_url, website_url, org_type, instagram, tiktok, facebook),
+  organization:organizations(${ORG_PUBLIC_COLS}),
   city:cities(*),
   category:categories(*),
   demographic:demographics(*),
@@ -104,7 +105,7 @@ export function useCompetitionPublic(orgSlug, competitionSlug, competitionId) {
       // Get organization by slug
       const { data: orgData, error: orgError } = await supabase
         .from('organizations')
-        .select('id, name, slug, logo, tagline, description, cover_image, total_competitions, total_cities, total_contestants, created_at, updated_at, logo_url, default_about_tagline, default_about_description, default_about_traits, default_age_range, default_requirement, default_theme_primary, default_theme_voting, default_theme_resurrection, header_logo_url, website_url, org_type, instagram, tiktok, facebook')
+        .select(ORG_PUBLIC_COLS)
         .eq('slug', orgSlug)
         .single();
 

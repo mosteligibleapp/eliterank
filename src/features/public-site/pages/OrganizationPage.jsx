@@ -6,6 +6,7 @@ import {
 import { Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { supabase } from '../../../lib/supabase';
+import { ORG_PUBLIC_COLS } from '../../../constants/safeColumns';
 import { STATUS_CONFIG, COMPETITION_STATUS } from '../../../types/competition';
 import { SkeletonPulse, SkeletonCircle, SkeletonCard } from '../../../components/common/Skeleton';
 import { getOrgLogo } from '../../../lib/storageImage';
@@ -35,7 +36,7 @@ export default function OrganizationPage() {
       // Fetch organization by slug
       const { data: orgData, error: orgError } = await supabase
         .from('organizations')
-        .select('id, name, slug, logo, tagline, description, cover_image, total_competitions, total_cities, total_contestants, created_at, updated_at, logo_url, default_about_tagline, default_about_description, default_about_traits, default_age_range, default_requirement, default_theme_primary, default_theme_voting, default_theme_resurrection, header_logo_url, website_url, org_type, instagram, tiktok, facebook')
+        .select(ORG_PUBLIC_COLS)
         .eq('slug', orgSlug)
         .single();
 
