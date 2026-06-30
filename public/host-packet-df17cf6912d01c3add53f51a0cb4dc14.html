@@ -315,6 +315,26 @@
     p,li{orphans:3;widows:3}
     .screen-only{display:none!important}
   }
+  /* ---- Mobile: reflow the letter-width print layout for small screens ---- */
+  @media screen and (max-width:680px){
+    html,body{overflow-x:hidden;-webkit-text-size-adjust:100%}
+    .doc{max-width:100%;box-shadow:none}
+    /* The wrapper table is print-only (header/footer spacing); on screen it
+       forces a min-content width that stretches every section past the phone
+       viewport. Flatten it to normal block flow so content wraps to width. */
+    .doc-frame,.doc-frame tbody,.doc-frame tr,.doc-frame td{display:block;width:auto!important}
+    .pad{padding:34px 20px!important;overflow-wrap:break-word}
+    /* Collapse multi-column content grids to a single column */
+    .doc [style*="grid-template-columns:repeat("],
+    .doc [style*="fr 1fr"],
+    .doc [style*="1.05fr"]{grid-template-columns:1fr!important}
+    /* Let the dashboard mock's tab strip wrap instead of being clipped */
+    .doc [style*="gap:22px"]{flex-wrap:wrap;gap:8px 16px!important}
+    /* Scale oversized display type down to a readable size on phones */
+    .pad h1{font-size:clamp(28px,8vw,40px)!important;line-height:1.08!important}
+    .pad h2{font-size:clamp(24px,7vw,34px)!important;line-height:1.12!important}
+    .pad h3{font-size:20px!important}
+  }
 </style>
 
 </head>
