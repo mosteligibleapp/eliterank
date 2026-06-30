@@ -136,7 +136,6 @@ export default function CompetitionDashboard({
     addCriterion,
     updateCriterion,
     deleteCriterion,
-    updateRoundJudgeWeight,
     updateCharity,
     removeCharity,
     addSponsor,
@@ -703,7 +702,6 @@ export default function CompetitionDashboard({
       onAddCriterion={addCriterion}
       onUpdateCriterion={updateCriterion}
       onDeleteCriterion={deleteCriterion}
-      onUpdateRoundJudgeWeight={updateRoundJudgeWeight}
       onDeleteSponsor={deleteSponsor}
       onOpenSponsorModal={(sponsor) => setSponsorModal({ isOpen: true, sponsor })}
       onOpenCharityModal={() => setCharityModal(true)}

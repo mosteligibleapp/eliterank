@@ -66,7 +66,6 @@ export default function SetupTab({
   onAddCriterion,
   onUpdateCriterion,
   onDeleteCriterion,
-  onUpdateRoundJudgeWeight,
   onDeleteSponsor,
   onOpenSponsorModal,
   onOpenCharityModal,
@@ -253,7 +252,6 @@ export default function SetupTab({
             onAddCriterion={onAddCriterion}
             onUpdateCriterion={onUpdateCriterion}
             onDeleteCriterion={onDeleteCriterion}
-            onUpdateRoundJudgeWeight={onUpdateRoundJudgeWeight}
             onRefresh={onRefresh}
             locked={publishLocked}
             badge={lockBadge}

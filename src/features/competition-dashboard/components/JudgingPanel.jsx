@@ -20,8 +20,6 @@ export default function JudgingPanel({
   onAddCriterion,
   onUpdateCriterion,
   onDeleteCriterion,
-  onUpdateRoundJudgeWeight,
-  onRefresh,
   locked = false,
   badge,
 }) {

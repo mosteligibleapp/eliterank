@@ -1325,25 +1325,6 @@ export function useCompetitionDashboard(competitionId) {
     }
   }, [fetchDashboardData]);
 
-  // Update a voting round's judge_weight (0–100). Affects how judge scores
-  // blend with vote counts when determining who advances.
-  const updateRoundJudgeWeight = useCallback(async (roundId, weight) => {
-    if (!supabase) return { success: false, error: 'Missing configuration' };
-    const clamped = Math.max(0, Math.min(100, Math.round(weight || 0)));
-    try {
-      const { error } = await supabase
-        .from('voting_rounds')
-        .update({ judge_weight: clamped })
-        .eq('id', roundId);
-      if (error) throw error;
-      await fetchDashboardData();
-      return { success: true };
-    } catch (err) {
-      console.error('Error updating round judge weight:', err);
-      return { success: false, error: err.message };
-    }
-  }, [fetchDashboardData]);
-
   // ============================================================================
   // CHARITY OPERATIONS
   // ============================================================================
@@ -2174,8 +2155,6 @@ export function useCompetitionDashboard(competitionId) {
     addCriterion,
     updateCriterion,
     deleteCriterion,
-    // Per-round judge weight (0–100 blend with votes)
-    updateRoundJudgeWeight,
     // Charity operations
     updateCharity,
     removeCharity,
