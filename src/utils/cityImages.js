@@ -9,8 +9,14 @@
 // Used only as a fallback when a competition has no cover_image in the DB —
 // the public competition card reads `competition.cover_image || getCityImage(...)`.
 // Going forward, hosts upload covers via the admin app (admin/CompetitionsManager).
+//
+// Keyed by competition name → { city → cover }. A curated cover only applies to
+// its matching city, so the same competition name running in another city falls
+// through to that city's skyline instead of inheriting the wrong cover.
 const COMPETITION_IMAGES = {
-  'most eligible bachelorettes': '/covers/chicago-women-2026.jpg',
+  'most eligible bachelorettes': {
+    'chicago': '/covers/chicago-women-2026.jpg',
+  },
 };
 
 // City name to image URL mapping (lowercase for easier matching)
@@ -108,19 +114,30 @@ const US_WIDE_IMAGE = LANDSCAPE.mountains;
  * @returns {string} URL of the image
  */
 export function getCityImage(cityName, competitionName = '') {
-  // First check for competition-specific image
+  const normalizedCity = (cityName || '').toLowerCase().trim();
+
+  // First check for a curated competition cover. These are keyed by city, so a
+  // cover only wins when it matches this competition's city; otherwise we fall
+  // through to the city skyline below.
   if (competitionName) {
     const normalizedCompName = competitionName.toLowerCase().trim();
 
-    // Direct match
-    if (COMPETITION_IMAGES[normalizedCompName]) {
-      return COMPETITION_IMAGES[normalizedCompName];
-    }
+    const cityCovers =
+      COMPETITION_IMAGES[normalizedCompName] ||
+      Object.entries(COMPETITION_IMAGES).find(
+        ([key]) => normalizedCompName.includes(key) || key.includes(normalizedCompName)
+      )?.[1];
 
-    // Partial match for competition name
-    for (const [key, url] of Object.entries(COMPETITION_IMAGES)) {
-      if (normalizedCompName.includes(key) || key.includes(normalizedCompName)) {
-        return url;
+    if (cityCovers && normalizedCity) {
+      // Direct city match
+      if (cityCovers[normalizedCity]) {
+        return cityCovers[normalizedCity];
+      }
+      // Partial city match (e.g. "New York City" -> "new york")
+      for (const [city, url] of Object.entries(cityCovers)) {
+        if (normalizedCity.includes(city) || city.includes(normalizedCity)) {
+          return url;
+        }
       }
     }
   }
@@ -128,7 +145,7 @@ export function getCityImage(cityName, competitionName = '') {
   // Fall back to city image
   if (!cityName) return DEFAULT_CITY_IMAGE;
 
-  const normalizedName = cityName.toLowerCase().trim();
+  const normalizedName = normalizedCity;
 
   // Direct match
   if (CITY_IMAGES[normalizedName]) {
