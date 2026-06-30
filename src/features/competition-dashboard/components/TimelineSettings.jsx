@@ -811,8 +811,10 @@ export default function TimelineSettings({ competition, onSave, isSuperAdmin = f
           // Voting Details is now the single owner of the round schedule —
           // including each round's judge weight and type — so we always persist
           // it. (The Judging panel no longer writes rounds; it's a read-only
-          // summary, which removes the split-ownership desync.)
-          judge_weight: round.judge_weight ?? 0,
+          // summary, which removes the split-ownership desync.) A vote-only
+          // competition carries no judge weight, so force it to 0 — this also
+          // clears any stale weight left over from a previously-judged config.
+          judge_weight: usesJudges ? (round.judge_weight ?? 0) : 0,
         }),
       });
 
