@@ -131,7 +131,7 @@ export default function JudgingPanel({
   // inline on the final round in Voting Details now. Here we only show a
   // read-only summary plus the shared scoring criteria.
   const judgingRound = votingRounds.find((r) => (r.judge_weight || 0) > 0) || null;
-  const judgingIsSeparate = !!judgingRound && ((judgingRound.round_type === 'judging') || (judgingRound.judge_weight || 0) >= 100);
+  const judgingIsSeparate = !!judgingRound && judgingRound.round_type === 'judging';
   const judgingRoundName = judgingRound ? (judgingRound.title || `Round ${judgingRound.round_order || ''}`) : '';
   const judgingSummary = !judgingRound
     ? null
