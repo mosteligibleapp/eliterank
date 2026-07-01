@@ -3,15 +3,8 @@ import { Landmark, CheckCircle, Clock, AlertTriangle, ExternalLink, Loader, Refr
 import { Panel, Button } from '../../../components/ui';
 import { colors, spacing, borderRadius, typography } from '../../../styles/theme';
 import { useToast } from '../../../contexts/ToastContext';
+import { supabase } from '../../../lib/supabase';
 import { useStripeConnect } from '../hooks/useStripeConnect';
-
-// Stripe verifies KYC in the background, so a host returning from onboarding
-// usually lands on `pending`, not `verified`. The stripe-webhook keeps the org
-// row fresh, but a host sitting on this card wouldn't see the flip without a
-// reload — so while pending we re-pull the authoritative status from Stripe on
-// an interval, bounded so an abandoned tab doesn't poll forever.
-const POLL_INTERVAL_MS = 10000; // 10s
-const MAX_POLLS = 30; // ~5 minutes
 
 /**
  * HostConnectCard — Stripe Connect (payouts) status + onboarding entry point
@@ -19,13 +12,20 @@ const MAX_POLLS = 30; // ~5 minutes
  *
  * Shows the org's current KYC/connection state and a CTA to start or finish
  * Stripe's hosted onboarding. Identity (SSN/EIN) is entered into Stripe, never
- * here (Invariant 15). While KYC is `pending` it auto-polls (and offers a
- * manual re-check) so the host sees verification complete without reloading.
+ * here (Invariant 15).
+ *
+ * Stripe verifies KYC in the background, so a host returning from onboarding
+ * usually lands on `pending`. The stripe-webhook is the source of truth — on
+ * Stripe's `account.updated` it writes the new kyc_status + capability flags to
+ * the org row (§5.1) — so this card subscribes to that row over Realtime and
+ * reflects the flip the instant it lands: no reload, no Stripe-polling. A
+ * manual "Check status now" button re-pulls straight from Stripe as an escape
+ * hatch (e.g. if a webhook is ever missed).
  *
  * Props:
  *   - connect: { hasAccount, kycStatus, chargesEnabled, payoutsEnabled, detailsSubmitted }
  *   - organizationId: string
- *   - onSynced: () => void — called after a status re-sync so the parent can
+ *   - onSynced: () => void — called after a status change so the parent can
  *     refresh the dashboard (which re-renders this card and the launch gates).
  */
 export default function HostConnectCard({ connect, organizationId, locked = false, onSynced }) {
@@ -38,12 +38,14 @@ export default function HostConnectCard({ connect, organizationId, locked = fals
   const failed = status === 'failed';
   const notStarted = status === 'not_started';
 
-  // Keep the latest callbacks in refs so the polling effect doesn't tear down
-  // and rebuild its interval when the parent passes new (unmemoized) props.
+  // Keep the latest callbacks/status in refs so the realtime effect doesn't
+  // tear down and re-subscribe when the parent passes new (unmemoized) props.
   const onSyncedRef = useRef(onSynced);
   onSyncedRef.current = onSynced;
   const toastRef = useRef(toast);
   toastRef.current = toast;
+  const statusRef = useRef(status);
+  statusRef.current = status;
 
   const announceTransition = (kyc) => {
     if (kyc === 'verified') {
@@ -53,32 +55,36 @@ export default function HostConnectCard({ connect, organizationId, locked = fals
     }
   };
 
-  // Auto-poll Stripe while verification is pending.
+  // Subscribe to the org row while KYC isn't yet verified. The stripe-webhook
+  // writes the new kyc_status on Stripe's `account.updated`; Realtime pushes
+  // that change here so the card — and the launch gates, via onSynced→refresh —
+  // update instantly. Realtime doesn't replay events missed while the socket
+  // was down, so on every re-subscribe we refresh to catch up.
   useEffect(() => {
-    if (!pending || !organizationId) return;
-    let cancelled = false;
-    let polls = 0;
-    let intervalId;
-    const tick = async () => {
-      polls += 1;
-      const result = await syncStatus(organizationId);
-      if (cancelled) return;
-      const next = result?.kyc_status;
-      if (next && next !== 'pending') {
-        clearInterval(intervalId);
-        announceTransition(next);
-        onSyncedRef.current?.();
-      } else if (polls >= MAX_POLLS) {
-        clearInterval(intervalId);
-      }
-    };
-    intervalId = setInterval(tick, POLL_INTERVAL_MS);
+    if (verified || !organizationId) return;
+    let subscribedBefore = false;
+    const channel = supabase
+      .channel(`org-connect-${organizationId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'organizations', filter: `id=eq.${organizationId}` },
+        (payload) => {
+          const next = payload.new?.kyc_status;
+          if (next && next !== statusRef.current) announceTransition(next);
+          onSyncedRef.current?.();
+        }
+      )
+      .subscribe((s) => {
+        if (s === 'SUBSCRIBED') {
+          if (subscribedBefore) onSyncedRef.current?.();
+          subscribedBefore = true;
+        }
+      });
     return () => {
-      cancelled = true;
-      clearInterval(intervalId);
+      supabase.removeChannel(channel);
     };
-    // announceTransition/onSynced are read via refs, so they needn't be deps.
-  }, [pending, organizationId, syncStatus]);
+    // Callbacks/status are read via refs, so they needn't be deps.
+  }, [verified, organizationId]);
 
   // Manual "Check status now" — same authoritative Stripe pull, on demand.
   const handleManualSync = async () => {
@@ -203,7 +209,7 @@ export default function HostConnectCard({ connect, organizationId, locked = fals
                 marginTop: spacing.sm,
               }}
             >
-              We’re checking automatically every few seconds — no need to reload.
+              This updates automatically the moment Stripe finishes — no need to reload.
             </p>
           </div>
         )}
