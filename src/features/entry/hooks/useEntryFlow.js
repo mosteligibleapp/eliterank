@@ -852,6 +852,44 @@ export function useEntryFlow(competition, profile, options = {}) {
     setCurrentStepIndex(steps.indexOf('nominee'));
   }, [steps]);
 
+  // ---- Log in an existing user mid-flow and pre-fill their details ----
+  // Powers the optional "Already have an account? Log in" link on the details
+  // step. On success it fills empty self fields from the profile and switches
+  // to the authenticated step list so the password step is dropped. Safe to
+  // call from any step up through 'bio' — the anon/auth lists share that prefix.
+  const loginAndPrefill = useCallback(async (email, password) => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', data.user.id)
+        .single();
+
+      if (profileData) {
+        setSelfData((prev) => ({
+          ...prev,
+          firstName: prev.firstName || profileData.first_name || '',
+          lastName: prev.lastName || profileData.last_name || '',
+          email: prev.email || profileData.email || '',
+          phone: prev.phone || profileData.phone || '',
+          instagram: prev.instagram || profileData.instagram || '',
+          age: prev.age || (profileData.age ? String(profileData.age) : ''),
+          location: prev.location || profileData.city || '',
+          photoPreview: prev.photoPreview || profileData.avatar_url || '',
+          bio: prev.bio || profileData.bio || '',
+        }));
+      }
+
+      frozenStepsRef.current = selfStepsAuth;
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message || 'Incorrect email or password.' };
+    }
+  }, [selfStepsAuth]);
+
   // ---- Forgot password: send a reset email ----
   // Same rescue as the claim flow: a self-nominee who already has an account
   // but forgot their password can trigger a reset instead of hitting a wall.
@@ -910,6 +948,7 @@ export function useEntryFlow(competition, profile, options = {}) {
     persistSelfProgress,
     createAccount,
     skipPassword,
+    loginAndPrefill,
     sendPasswordReset,
     setSubmitError,
   };

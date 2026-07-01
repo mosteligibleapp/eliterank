@@ -43,49 +43,22 @@ export default function EntryFlow() {
     about,
     isPreview,
   } = usePublicCompetition();
-  const { profile, signIn } = useSupabaseAuth();
+  const { profile } = useSupabaseAuth();
 
   const flow = useEntryFlow(competition, profile, { isPreview });
   const flowRef = useRef(null);
 
-  // Login for returning self-nominees. Only the "Enter Myself" path benefits
-  // (their own profile pre-fills their card), so login is gated behind that
-  // choice — a nominator entering someone else never sees it. Logging in loads
-  // the profile → isLoggedIn → the self flow runs pre-filled with no password
-  // step.
+  // Optional login on the details step. New users just enter their details as
+  // usual (best for conversion — no wall); returning self-entrants can tap a
+  // small "Already have an account? Log in" link to pre-fill their details and
+  // skip the password step. Not shown to nominators or logged-in users.
   const [showLogin, setShowLogin] = useState(false);
-  const [awaitingSelfStart, setAwaitingSelfStart] = useState(false);
 
-  // Intercept "Enter Myself" when logged out: offer login first. Every other
-  // path (nominate, or an already-logged-in self-entry) goes straight through.
-  const handleSelectMode = (selectedMode) => {
-    if (selectedMode === 'self' && !flow.isLoggedIn) {
-      setShowLogin(true);
-      return;
-    }
-    flow.selectMode(selectedMode);
+  const handleDetailsLogin = async (email, password) => {
+    const result = await flow.loginAndPrefill(email, password);
+    if (result?.success) setShowLogin(false);
+    return result;
   };
-
-  const handleLogin = async (email, password) => {
-    const { user, error } = await signIn(email, password);
-    if (error || !user) {
-      return { success: false, error: error || 'Incorrect email or password.' };
-    }
-    // Profile loads asynchronously via the auth listener; wait for it before
-    // starting the self flow so it uses the authenticated (no-password,
-    // pre-filled) step list rather than the anonymous one.
-    setAwaitingSelfStart(true);
-    return { success: true };
-  };
-
-  // Start the self flow once login has propagated to the profile/isLoggedIn.
-  useEffect(() => {
-    if (awaitingSelfStart && flow.isLoggedIn) {
-      setAwaitingSelfStart(false);
-      setShowLogin(false);
-      flow.selectMode('self');
-    }
-  }, [awaitingSelfStart, flow.isLoggedIn]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const competitionTitle = getCompetitionTitle(competition);
 
@@ -242,10 +215,10 @@ export default function EntryFlow() {
           organizationLogoUrl: organization?.logo_url,
         }, {
           showLogin,
-          handleSelectMode,
-          handleLogin,
-          continueWithoutLogin: () => { setShowLogin(false); flow.selectMode('self'); },
+          setShowLogin,
+          onDetailsLogin: handleDetailsLogin,
           sendPasswordReset: flow.sendPasswordReset,
+          isLoggedIn: flow.isLoggedIn,
           loggedInEmail: flow.isLoggedIn ? profile?.email : null,
         })}
       </div>
@@ -259,21 +232,9 @@ export default function EntryFlow() {
 function renderStep(flow, competition, competitionTitle, handleDone, handleNominateAnother, handleDetailsNext, guideContext = {}, authCtx = {}) {
   switch (flow.currentStep) {
     case 'mode':
-      if (authCtx.showLogin) {
-        return (
-          <ExistingAccountLogin
-            title="Log in to pre-fill your entry"
-            subtitle="Already have an account? Log in and we'll pre-fill your details."
-            onLogin={authCtx.handleLogin}
-            onForgotPassword={authCtx.sendPasswordReset}
-            onCancel={authCtx.continueWithoutLogin}
-            cancelLabel="I don't have an account"
-          />
-        );
-      }
       return (
         <ModeSelect
-          onSelectMode={authCtx.handleSelectMode}
+          onSelectMode={flow.selectMode}
           competitionTitle={competitionTitle}
           loggedInEmail={authCtx.loggedInEmail}
         />
@@ -306,6 +267,18 @@ function renderStep(flow, competition, competitionTitle, handleDone, handleNomin
       );
 
     case 'details':
+      if (authCtx.showLogin) {
+        return (
+          <ExistingAccountLogin
+            title="Log in to pre-fill"
+            subtitle="Already have an account? Log in and we'll fill in your details."
+            onLogin={authCtx.onDetailsLogin}
+            onForgotPassword={authCtx.sendPasswordReset}
+            onCancel={() => authCtx.setShowLogin(false)}
+            cancelLabel="Back to entering my details"
+          />
+        );
+      }
       return (
         <BuildCardDetailsStep
           data={flow.selfData}
@@ -314,6 +287,7 @@ function renderStep(flow, competition, competitionTitle, handleDone, handleNomin
           error={flow.submitError}
           isSubmitting={flow.isSubmitting}
           splitByGender={!!competition?.winners_split_by_gender}
+          onLoginPrompt={authCtx.isLoggedIn ? null : () => authCtx.setShowLogin(true)}
         />
       );
 
