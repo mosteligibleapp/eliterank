@@ -14,6 +14,7 @@ import PhotoUpload from '../../entry/components/PhotoUpload';
 import BuildCardDetailsStep from '../../entry/components/BuildCardDetailsStep';
 import SelfPitchStep from '../../entry/components/SelfPitchStep';
 import CreatePasswordStep from '../../entry/components/CreatePasswordStep';
+import ExistingAccountLogin from '../../entry/components/ExistingAccountLogin';
 import CardReveal from '../../entry/components/CardReveal';
 import CompetitionBanner from '../../entry/components/CompetitionBanner';
 
@@ -211,6 +212,28 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
     needsPassword,
   });
 
+  // ---- Returning user: auto-detect an existing account and greet with login ----
+  // If this nominee's email already has an account and they're not already
+  // logged in as that user, offer to log in up front. Logging in pre-fills the
+  // card from their profile and drops the password step.
+  const [emailHasAccount, setEmailHasAccount] = useState(null);
+  const [greetDismissed, setGreetDismissed] = useState(false);
+  const emailCheckedRef = useRef(false);
+
+  useEffect(() => {
+    if (emailCheckedRef.current || !nominee?.email || isNomineeUser) return;
+    emailCheckedRef.current = true;
+    flow.checkEmailExists(nominee.email).then(setEmailHasAccount);
+  }, [nominee?.email, isNomineeUser, flow]);
+
+  const showGreet = emailHasAccount === true && !isNomineeUser && !greetDismissed;
+
+  const handleGreetLogin = async (email, password) => {
+    const result = await flow.loginExistingAccount(email, password);
+    if (result?.success) setGreetDismissed(true);
+    return result;
+  };
+
   // Scroll to top on step change
   useEffect(() => {
     if (flowRef.current) {
@@ -291,6 +314,26 @@ export default function ClaimNominationPage({ token, onClose, onSuccess }) {
         <div className="entry-loading">
           <div className="entry-spinner" />
           <p>Loading your nomination...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ---- Returning user: greet with login before the flow ----
+  if (showGreet) {
+    return (
+      <div className="entry-flow" ref={flowRef}>
+        <div className="entry-content">
+          <ExistingAccountLogin
+            email={nominee.email}
+            lockEmail
+            title="Welcome back!"
+            subtitle={`You've been nominated for ${competition?.name || 'this competition'}. Log in and we'll set up your entry with your details.`}
+            onLogin={handleGreetLogin}
+            onForgotPassword={flow.sendPasswordReset}
+            onCancel={() => setGreetDismissed(true)}
+            cancelLabel="Continue as a new account"
+          />
         </div>
       </div>
     );

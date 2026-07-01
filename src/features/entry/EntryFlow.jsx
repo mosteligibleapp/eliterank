@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, AlertCircle } from 'lucide-react';
 import { usePublicCompetition } from '../../contexts/PublicCompetitionContext';
@@ -9,6 +9,7 @@ import { getCompetitionTitle } from './utils/eligibilityEngine';
 // Step components
 import CompetitionBanner from './components/CompetitionBanner';
 import ModeSelect from './components/ModeSelect';
+import ExistingAccountLogin from './components/ExistingAccountLogin';
 import EligibilityStep from './components/EligibilityStep';
 import PhotoUpload from './components/PhotoUpload';
 import BuildCardDetailsStep from './components/BuildCardDetailsStep';
@@ -42,10 +43,24 @@ export default function EntryFlow() {
     about,
     isPreview,
   } = usePublicCompetition();
-  const { profile } = useSupabaseAuth();
+  const { profile, signIn } = useSupabaseAuth();
 
   const flow = useEntryFlow(competition, profile, { isPreview });
   const flowRef = useRef(null);
+
+  // Up-front login for returning users on the opening screen. Logging in here
+  // means profile loads → isLoggedIn → selecting "Enter Myself" pre-fills the
+  // card steps and skips the password step.
+  const [showLogin, setShowLogin] = useState(false);
+
+  const handleLogin = async (email, password) => {
+    const { user, error } = await signIn(email, password);
+    if (error || !user) {
+      return { success: false, error: error || 'Incorrect email or password.' };
+    }
+    setShowLogin(false);
+    return { success: true };
+  };
 
   const competitionTitle = getCompetitionTitle(competition);
 
@@ -195,6 +210,13 @@ export default function EntryFlow() {
           about,
           phase,
           organizationLogoUrl: organization?.logo_url,
+        }, {
+          showLogin,
+          setShowLogin,
+          handleLogin,
+          sendPasswordReset: flow.sendPasswordReset,
+          isLoggedIn: flow.isLoggedIn,
+          loggedInEmail: flow.isLoggedIn ? profile?.email : null,
         })}
       </div>
     </div>
@@ -204,13 +226,27 @@ export default function EntryFlow() {
 /**
  * Render the current step
  */
-function renderStep(flow, competition, competitionTitle, handleDone, handleNominateAnother, handleDetailsNext, guideContext = {}) {
+function renderStep(flow, competition, competitionTitle, handleDone, handleNominateAnother, handleDetailsNext, guideContext = {}, authCtx = {}) {
   switch (flow.currentStep) {
     case 'mode':
+      if (authCtx.showLogin) {
+        return (
+          <ExistingAccountLogin
+            title="Log in"
+            subtitle="Log in and we'll pre-fill your entry with your profile details."
+            onLogin={authCtx.handleLogin}
+            onForgotPassword={authCtx.sendPasswordReset}
+            onCancel={() => authCtx.setShowLogin(false)}
+            cancelLabel="Back"
+          />
+        );
+      }
       return (
         <ModeSelect
           onSelectMode={flow.selectMode}
           competitionTitle={competitionTitle}
+          onLoginClick={authCtx.isLoggedIn ? null : () => authCtx.setShowLogin(true)}
+          loggedInEmail={authCtx.loggedInEmail}
         />
       );
 

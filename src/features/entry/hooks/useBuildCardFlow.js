@@ -727,8 +727,11 @@ export function useBuildCardFlow({
           lastName: prev.lastName || profileData.last_name || '',
           age: prev.age || profileData.age || '',
           location: prev.location || profileData.city || '',
+          email: prev.email || profileData.email || '',
+          phone: prev.phone || profileData.phone || '',
           instagram: prev.instagram || profileData.instagram || '',
           photoPreview: prev.photoPreview || profileData.avatar_url || '',
+          bio: prev.bio || profileData.bio || '',
         }));
       }
 
@@ -740,10 +743,10 @@ export function useBuildCardFlow({
           .eq('id', nomineeId);
       }
 
-      return true;
+      return { success: true };
     } catch (err) {
       setSubmitError(err.message || 'Invalid email or password');
-      return false;
+      return { success: false, error: err.message || 'Incorrect email or password.' };
     } finally {
       setIsSubmitting(false);
     }
