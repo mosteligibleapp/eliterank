@@ -48,19 +48,44 @@ export default function EntryFlow() {
   const flow = useEntryFlow(competition, profile, { isPreview });
   const flowRef = useRef(null);
 
-  // Up-front login for returning users on the opening screen. Logging in here
-  // means profile loads → isLoggedIn → selecting "Enter Myself" pre-fills the
-  // card steps and skips the password step.
+  // Login for returning self-nominees. Only the "Enter Myself" path benefits
+  // (their own profile pre-fills their card), so login is gated behind that
+  // choice — a nominator entering someone else never sees it. Logging in loads
+  // the profile → isLoggedIn → the self flow runs pre-filled with no password
+  // step.
   const [showLogin, setShowLogin] = useState(false);
+  const [awaitingSelfStart, setAwaitingSelfStart] = useState(false);
+
+  // Intercept "Enter Myself" when logged out: offer login first. Every other
+  // path (nominate, or an already-logged-in self-entry) goes straight through.
+  const handleSelectMode = (selectedMode) => {
+    if (selectedMode === 'self' && !flow.isLoggedIn) {
+      setShowLogin(true);
+      return;
+    }
+    flow.selectMode(selectedMode);
+  };
 
   const handleLogin = async (email, password) => {
     const { user, error } = await signIn(email, password);
     if (error || !user) {
       return { success: false, error: error || 'Incorrect email or password.' };
     }
-    setShowLogin(false);
+    // Profile loads asynchronously via the auth listener; wait for it before
+    // starting the self flow so it uses the authenticated (no-password,
+    // pre-filled) step list rather than the anonymous one.
+    setAwaitingSelfStart(true);
     return { success: true };
   };
+
+  // Start the self flow once login has propagated to the profile/isLoggedIn.
+  useEffect(() => {
+    if (awaitingSelfStart && flow.isLoggedIn) {
+      setAwaitingSelfStart(false);
+      setShowLogin(false);
+      flow.selectMode('self');
+    }
+  }, [awaitingSelfStart, flow.isLoggedIn]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const competitionTitle = getCompetitionTitle(competition);
 
@@ -88,6 +113,11 @@ export default function EntryFlow() {
 
   // Handle back to competition page
   const handleBack = () => {
+    // If the self-entry login panel is open, back just closes it → mode select.
+    if (showLogin) {
+      setShowLogin(false);
+      return;
+    }
     if (flow.currentStep !== 'mode' && flow.currentStep !== 'card') {
       flow.back();
     } else {
@@ -212,10 +242,10 @@ export default function EntryFlow() {
           organizationLogoUrl: organization?.logo_url,
         }, {
           showLogin,
-          setShowLogin,
+          handleSelectMode,
           handleLogin,
+          continueWithoutLogin: () => { setShowLogin(false); flow.selectMode('self'); },
           sendPasswordReset: flow.sendPasswordReset,
-          isLoggedIn: flow.isLoggedIn,
           loggedInEmail: flow.isLoggedIn ? profile?.email : null,
         })}
       </div>
@@ -232,20 +262,19 @@ function renderStep(flow, competition, competitionTitle, handleDone, handleNomin
       if (authCtx.showLogin) {
         return (
           <ExistingAccountLogin
-            title="Log in"
-            subtitle="Log in and we'll pre-fill your entry with your profile details."
+            title="Log in to pre-fill your entry"
+            subtitle="Already have an account? Log in and we'll pre-fill your details. New here? Just continue below."
             onLogin={authCtx.handleLogin}
             onForgotPassword={authCtx.sendPasswordReset}
-            onCancel={() => authCtx.setShowLogin(false)}
-            cancelLabel="Back"
+            onCancel={authCtx.continueWithoutLogin}
+            cancelLabel="Continue without logging in"
           />
         );
       }
       return (
         <ModeSelect
-          onSelectMode={flow.selectMode}
+          onSelectMode={authCtx.handleSelectMode}
           competitionTitle={competitionTitle}
-          onLoginClick={authCtx.isLoggedIn ? null : () => authCtx.setShowLogin(true)}
           loggedInEmail={authCtx.loggedInEmail}
         />
       );

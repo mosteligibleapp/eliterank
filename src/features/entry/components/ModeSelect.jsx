@@ -4,7 +4,7 @@ import { User, Users } from 'lucide-react';
 /**
  * Step 1: Choose between self-entry and nominating someone
  */
-export default function ModeSelect({ onSelectMode, competitionTitle, onLoginClick, loggedInEmail }) {
+export default function ModeSelect({ onSelectMode, competitionTitle, loggedInEmail }) {
   return (
     <div className="entry-step entry-step-mode">
       <h2 className="entry-step-title">Who are you entering?</h2>
@@ -37,26 +37,6 @@ export default function ModeSelect({ onSelectMode, competitionTitle, onLoginClic
           <span className="entry-mode-desc">I know the perfect person</span>
         </button>
       </div>
-
-      {!loggedInEmail && onLoginClick && (
-        <div style={{ textAlign: 'center', marginTop: 20 }}>
-          <button
-            type="button"
-            onClick={onLoginClick}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--color-primary)',
-              cursor: 'pointer',
-              fontSize: 14,
-              padding: 0,
-              textDecoration: 'underline',
-            }}
-          >
-            Already have an account? Log in
-          </button>
-        </div>
-      )}
     </div>
   );
 }
