@@ -263,11 +263,11 @@ function renderStep(flow, competition, competitionTitle, handleDone, handleNomin
         return (
           <ExistingAccountLogin
             title="Log in to pre-fill your entry"
-            subtitle="Already have an account? Log in and we'll pre-fill your details. New here? Just continue below."
+            subtitle="Already have an account? Log in and we'll pre-fill your details."
             onLogin={authCtx.handleLogin}
             onForgotPassword={authCtx.sendPasswordReset}
             onCancel={authCtx.continueWithoutLogin}
-            cancelLabel="Continue without logging in"
+            cancelLabel="I don't have an account"
           />
         );
       }
