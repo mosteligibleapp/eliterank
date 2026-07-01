@@ -13,7 +13,6 @@ export default function BuildCardDetailsStep({
   error,
   isSubmitting,
   splitByGender = false,
-  onLoginPrompt, // optional: () => void — shows a small "already have an account? log in" link
 }) {
   const handleChange = (field) => (e) => {
     onChange({ [field]: e.target.value });
@@ -168,26 +167,6 @@ export default function BuildCardDetailsStep({
       >
         {isSubmitting ? 'Saving...' : 'Continue'}
       </button>
-
-      {onLoginPrompt && (
-        <div style={{ textAlign: 'center', marginTop: 16 }}>
-          <button
-            type="button"
-            onClick={onLoginPrompt}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--color-primary)',
-              cursor: 'pointer',
-              fontSize: 13,
-              padding: 0,
-              textDecoration: 'underline',
-            }}
-          >
-            Already have an account? Log in to pre-fill
-          </button>
-        </div>
-      )}
     </form>
   );
 }
