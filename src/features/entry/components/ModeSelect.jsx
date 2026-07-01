@@ -4,14 +4,12 @@ import { User, Users } from 'lucide-react';
 /**
  * Step 1: Choose between self-entry and nominating someone
  */
-export default function ModeSelect({ onSelectMode, competitionTitle, loggedInEmail }) {
+export default function ModeSelect({ onSelectMode, competitionTitle }) {
   return (
     <div className="entry-step entry-step-mode">
       <h2 className="entry-step-title">Who are you entering?</h2>
       <p className="entry-step-subtitle">
-        {loggedInEmail
-          ? `Logged in as ${loggedInEmail} — your details will be pre-filled.`
-          : `Enter yourself or nominate someone for ${competitionTitle || 'this competition'}`}
+        Enter yourself or nominate someone for {competitionTitle || 'this competition'}
       </p>
 
       <div className="entry-mode-options">

@@ -219,7 +219,6 @@ export default function EntryFlow() {
           onLogin: handleDetailsLogin,
           sendPasswordReset: flow.sendPasswordReset,
           isLoggedIn: flow.isLoggedIn,
-          loggedInEmail: flow.isLoggedIn ? profile?.email : null,
         })}
 
         {/* "Already have an account?" link — sits directly beneath the step's
@@ -275,7 +274,6 @@ function renderStep(flow, competition, competitionTitle, handleDone, handleNomin
         <ModeSelect
           onSelectMode={flow.selectMode}
           competitionTitle={competitionTitle}
-          loggedInEmail={authCtx.loggedInEmail}
         />
       );
 
