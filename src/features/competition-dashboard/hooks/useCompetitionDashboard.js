@@ -192,7 +192,7 @@ export function useCompetitionDashboard(competitionId) {
             category:categories(id, name, slug),
             demographic:demographics(id, label, slug),
             city:cities(id, name, state, slug),
-            organization:organizations(id, name, legal_entity_name, slug, logo_url, header_logo_url, website_url, instagram, tiktok, facebook, is_managed, stripe_connect_account_id, kyc_status, charges_enabled, payouts_enabled, connect_details_submitted, master_agreement_version, master_agreement_accepted_at),
+            organization:organizations(id, name, legal_entity_name, slug, logo_url, header_logo_url, website_url, instagram, tiktok, facebook, is_managed, master_agreement_version, master_agreement_accepted_at, organization_connect(stripe_connect_account_id, kyc_status, charges_enabled, payouts_enabled, connect_details_submitted)),
             host:profiles!competitions_host_id_fkey(id, email, first_name, last_name, avatar_url, bio, instagram, city, gallery),
             voting_rounds(id, start_date, end_date, round_order, round_type, title, contestants_advance, judge_weight, finalized_at, finalized_snapshot),
             nomination_periods(id, start_date, end_date, period_order, title)
@@ -249,6 +249,11 @@ export function useCompetitionDashboard(competitionId) {
       }
 
       const competition = competitionResult.data;
+      // Stripe Connect / KYC status now lives in the strict-RLS `organization_connect`
+      // table (embedded above), not on `organizations`. PostgREST returns a 1:1
+      // embed as an object, but normalize array-shaped results defensively.
+      const ocRaw = competition?.organization?.organization_connect;
+      const orgConnect = Array.isArray(ocRaw) ? (ocRaw[0] || null) : (ocRaw || null);
       let host = null;
       const hostProfile = competition?.host || null;
       if (hostProfile) {
@@ -641,11 +646,11 @@ export function useCompetitionDashboard(competitionId) {
           // Stripe Connect (payouts) status for the host org — read back from
           // Stripe, never self-attested (§5.1). Drives the Payouts card.
           connect: {
-            hasAccount: !!competition.organization?.stripe_connect_account_id,
-            kycStatus: competition.organization?.kyc_status || 'not_started',
-            chargesEnabled: !!competition.organization?.charges_enabled,
-            payoutsEnabled: !!competition.organization?.payouts_enabled,
-            detailsSubmitted: !!competition.organization?.connect_details_submitted,
+            hasAccount: !!orgConnect?.stripe_connect_account_id,
+            kycStatus: orgConnect?.kyc_status || 'not_started',
+            chargesEnabled: !!orgConnect?.charges_enabled,
+            payoutsEnabled: !!orgConnect?.payouts_enabled,
+            detailsSubmitted: !!orgConnect?.connect_details_submitted,
           },
           // Promoter/Master Agreement acceptance for the host org. Must be
           // accepted (current version) BEFORE connecting Stripe, and is a
