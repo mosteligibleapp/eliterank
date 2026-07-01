@@ -852,6 +852,27 @@ export function useEntryFlow(competition, profile, options = {}) {
     setCurrentStepIndex(steps.indexOf('nominee'));
   }, [steps]);
 
+  // ---- Forgot password: send a reset email ----
+  // Same rescue as the claim flow: a self-nominee who already has an account
+  // but forgot their password can trigger a reset instead of hitting a wall.
+  const sendPasswordReset = useCallback(async (targetEmail) => {
+    const addr = (targetEmail || selfData.email || '').trim();
+    if (!addr) {
+      return { success: false, error: 'No email on file to send a reset to.' };
+    }
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(addr, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) {
+        return { success: false, error: error.message || 'Failed to send reset email.' };
+      }
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message || 'Failed to send reset email.' };
+    }
+  }, [selfData.email]);
+
   return {
     // State
     mode,
@@ -889,6 +910,7 @@ export function useEntryFlow(competition, profile, options = {}) {
     persistSelfProgress,
     createAccount,
     skipPassword,
+    sendPasswordReset,
     setSubmitError,
   };
 }

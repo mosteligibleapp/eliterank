@@ -749,6 +749,28 @@ export function useBuildCardFlow({
     }
   }, [nomineeId]);
 
+  // ---- Forgot password: send a reset email ----
+  // Rescues the dead-end where a logged-out existing user (who forgot their
+  // password) reaches the claim password step. Mirrors LoginPage's reset flow:
+  // Supabase emails a recovery link that lands on /reset-password.
+  const sendPasswordReset = useCallback(async (targetEmail) => {
+    const addr = (targetEmail || cardData.email || '').trim();
+    if (!addr) {
+      return { success: false, error: 'No email on file to send a reset to.' };
+    }
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(addr, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) {
+        return { success: false, error: error.message || 'Failed to send reset email.' };
+      }
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message || 'Failed to send reset email.' };
+    }
+  }, [cardData.email]);
+
   return {
     // State
     currentStep,
@@ -780,6 +802,7 @@ export function useBuildCardFlow({
     skipPassword,
     checkEmailExists,
     loginExistingAccount,
+    sendPasswordReset,
     setSubmitError,
   };
 }

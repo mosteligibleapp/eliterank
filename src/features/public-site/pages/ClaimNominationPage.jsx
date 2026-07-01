@@ -423,6 +423,7 @@ function renderClaimStep(flow, competition, nominee, handleDecline, handleInelig
           isSubmitting={flow.isSubmitting}
           error={flow.submitError}
           isSettingPassword={!!user}
+          onForgotPassword={flow.sendPasswordReset}
         />
       );
 

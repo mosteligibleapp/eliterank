@@ -284,6 +284,7 @@ function renderStep(flow, competition, competitionTitle, handleDone, handleNomin
           isSubmitting={flow.isSubmitting}
           error={flow.submitError}
           isSettingPassword={false}
+          onForgotPassword={flow.sendPasswordReset}
         />
       );
 
