@@ -114,8 +114,11 @@ CREATE POLICY organization_connect_select ON public.organization_connect
   USING (public._can_read_org_connect(organization_id));
 
 -- Read-only for clients; the trigger (definer) and service role handle writes.
--- Not granted to anon.
 GRANT SELECT ON public.organization_connect TO authenticated;
+-- Supabase's default table privileges auto-grant anon SELECT on new public
+-- tables. RLS already denies anon (no anon policy), but revoke the grant too so
+-- payout status is never anon-reachable even if a policy is later added.
+REVOKE SELECT ON public.organization_connect FROM anon;
 
 -- ── 5. Realtime: publish the strict table, keep organizations OUT ───────────
 DO $$
