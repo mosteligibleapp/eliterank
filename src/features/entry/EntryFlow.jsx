@@ -221,30 +221,31 @@ export default function EntryFlow() {
           isLoggedIn: flow.isLoggedIn,
           loggedInEmail: flow.isLoggedIn ? profile?.email : null,
         })}
-      </div>
 
-      {/* Persistent "already have an account?" link across the early self steps.
-          New users ignore it and continue; returning users log in to pre-fill. */}
-      {!showLogin && flow.mode === 'self' && !flow.isLoggedIn &&
-        ['eligibility', 'photo', 'details'].includes(flow.currentStep) && (
-        <div style={{ textAlign: 'center', padding: '4px 0 28px' }}>
-          <button
-            type="button"
-            onClick={() => setShowLogin(true)}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--color-primary)',
-              cursor: 'pointer',
-              fontSize: 14,
-              padding: 0,
-              textDecoration: 'underline',
-            }}
-          >
-            Already have an account? Log in to pre-fill
-          </button>
-        </div>
-      )}
+        {/* "Already have an account?" link — sits directly beneath the step's
+            button across the early self steps. New users ignore it; returning
+            users log in to pre-fill. Hidden once logged in / on the nominate path. */}
+        {!showLogin && flow.mode === 'self' && !flow.isLoggedIn &&
+          ['eligibility', 'photo', 'details'].includes(flow.currentStep) && (
+          <div style={{ textAlign: 'center', marginTop: 16 }}>
+            <button
+              type="button"
+              onClick={() => setShowLogin(true)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--color-primary)',
+                cursor: 'pointer',
+                fontSize: 14,
+                padding: 0,
+                textDecoration: 'underline',
+              }}
+            >
+              Already have an account? Log in to pre-fill
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
