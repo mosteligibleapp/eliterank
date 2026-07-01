@@ -55,11 +55,14 @@ export default function HostConnectCard({ connect, organizationId, locked = fals
     }
   };
 
-  // Subscribe to the org row while KYC isn't yet verified. The stripe-webhook
-  // writes the new kyc_status on Stripe's `account.updated`; Realtime pushes
-  // that change here so the card — and the launch gates, via onSynced→refresh —
-  // update instantly. Realtime doesn't replay events missed while the socket
-  // was down, so on every re-subscribe we refresh to catch up.
+  // Subscribe to the org's connect row while KYC isn't yet verified. The
+  // stripe-webhook writes the new kyc_status on Stripe's `account.updated`,
+  // which the DB mirrors into `organization_connect` (a strict-RLS table only
+  // the org's owner/co-hosts can read — so this subscription can't be used to
+  // snoop on other orgs). Realtime pushes that change here so the card — and
+  // the launch gates, via onSynced→refresh — update instantly. Realtime doesn't
+  // replay events missed while the socket was down, so on every re-subscribe we
+  // refresh to catch up.
   useEffect(() => {
     if (verified || !organizationId) return;
     let subscribedBefore = false;
@@ -67,7 +70,7 @@ export default function HostConnectCard({ connect, organizationId, locked = fals
       .channel(`org-connect-${organizationId}`)
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'organizations', filter: `id=eq.${organizationId}` },
+        { event: '*', schema: 'public', table: 'organization_connect', filter: `organization_id=eq.${organizationId}` },
         (payload) => {
           const next = payload.new?.kyc_status;
           if (next && next !== statusRef.current) announceTransition(next);
