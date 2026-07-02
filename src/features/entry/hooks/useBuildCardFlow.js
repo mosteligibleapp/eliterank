@@ -683,22 +683,7 @@ export function useBuildCardFlow({
     next();
   }, [next, nomineeId]);
 
-  // ---- Account collision: check if email exists ----
-  const checkEmailExists = useCallback(async (email) => {
-    if (!email?.trim()) return false;
-    try {
-      const { data } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', email.trim())
-        .maybeSingle();
-      return !!data;
-    } catch {
-      return false;
-    }
-  }, []);
-
-  // ---- Login existing account (account collision) ----
+  // ---- Login existing account (returning nominee / account collision) ----
   const loginExistingAccount = useCallback(async (email, password) => {
     setIsSubmitting(true);
     setSubmitError('');
@@ -729,6 +714,8 @@ export function useBuildCardFlow({
           location: prev.location || profileData.city || '',
           instagram: prev.instagram || profileData.instagram || '',
           photoPreview: prev.photoPreview || profileData.avatar_url || '',
+          bio: prev.bio || profileData.bio || '',
+          email: prev.email || profileData.email || email || '',
         }));
       }
 
@@ -778,7 +765,6 @@ export function useBuildCardFlow({
     submitCard,
     createAccount,
     skipPassword,
-    checkEmailExists,
     loginExistingAccount,
     setSubmitError,
   };
