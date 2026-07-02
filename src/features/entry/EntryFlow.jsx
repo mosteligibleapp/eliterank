@@ -240,7 +240,7 @@ export default function EntryFlow() {
                 textDecoration: 'underline',
               }}
             >
-              Already have an account? Log in to pre-fill
+              Already have an account? Log in
             </button>
           </div>
         )}
