@@ -1,9 +1,21 @@
 import React from 'react';
-import { Mail, Instagram, MapPin } from 'lucide-react';
+import { Mail, Instagram, MapPin, Calendar } from 'lucide-react';
+
+// Derive whole-year age from a YYYY-MM-DD birthdate string.
+function ageFromBirthdate(birthdate) {
+  if (!birthdate) return null;
+  const dob = new Date(`${birthdate}T00:00:00`);
+  if (Number.isNaN(dob.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - dob.getFullYear();
+  const m = now.getMonth() - dob.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < dob.getDate())) age -= 1;
+  return age;
+}
 
 /**
  * BuildCardDetailsStep - Unified details for ALL nominees
- * Collects: firstName, lastName, age, location, email/phone, instagram
+ * Collects: firstName, lastName, birthdate (→ age), location, email, instagram
  * Pre-fills from profile (logged-in) or nominee record (third-party)
  */
 export default function BuildCardDetailsStep({
@@ -18,14 +30,26 @@ export default function BuildCardDetailsStep({
     onChange({ [field]: e.target.value });
   };
 
+  // Birthdate is the input; age is derived and stored so everything
+  // downstream (card display, eligibility, DB) keeps working off `age`.
+  const handleBirthdate = (e) => {
+    const birthdate = e.target.value;
+    const derived = ageFromBirthdate(birthdate);
+    onChange({ birthdate, age: derived != null ? String(derived) : '' });
+  };
+
+  const derivedAge = data.age ? parseInt(data.age, 10) : null;
+  const todayStr = new Date().toISOString().split('T')[0];
+
   const hasEmail = data.email?.trim() && data.email.includes('@');
 
   const isValid =
     data.firstName?.trim() &&
     data.lastName?.trim() &&
     hasEmail &&
-    data.age &&
-    parseInt(data.age, 10) >= 18 &&
+    data.birthdate &&
+    derivedAge != null &&
+    derivedAge >= 18 &&
     data.location?.trim() &&
     data.instagram?.trim() &&
     (!splitByGender || data.gender === 'male' || data.gender === 'female');
@@ -66,17 +90,24 @@ export default function BuildCardDetailsStep({
       </div>
 
       <div className="entry-form-field">
-        <label className="entry-label">Age *</label>
-        <input
-          type="number"
-          className="entry-input"
-          value={data.age || ''}
-          onChange={handleChange('age')}
-          placeholder="Your age"
-          min="18"
-          max="99"
-          inputMode="numeric"
-        />
+        <label className="entry-label">Date of Birth *</label>
+        <div className="entry-input-icon">
+          <Calendar size={18} />
+          <input
+            type="date"
+            className="entry-input"
+            value={data.birthdate || ''}
+            onChange={handleBirthdate}
+            max={todayStr}
+            autoComplete="bday"
+          />
+        </div>
+        {data.birthdate && derivedAge != null && derivedAge < 18 && (
+          <p className="entry-hint">You must be at least 18 to enter.</p>
+        )}
+        {data.birthdate && derivedAge != null && derivedAge >= 18 && (
+          <p className="entry-hint">Age: {derivedAge}</p>
+        )}
       </div>
 
       <div className="entry-form-field">
