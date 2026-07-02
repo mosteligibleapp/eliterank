@@ -189,7 +189,7 @@ export default function OverviewTab({
                 <HostAgreementCard agreement={competition?.agreement} organizationId={competition?.organizationId} onAccepted={onRefresh} />
               </div>
               <div id="host-connect-card">
-                <HostConnectCard connect={competition?.connect} organizationId={competition?.organizationId} locked={!hasAcceptedCurrentAgreement(competition?.agreement)} />
+                <HostConnectCard connect={competition?.connect} organizationId={competition?.organizationId} locked={!hasAcceptedCurrentAgreement(competition?.agreement)} onSynced={onRefresh} />
               </div>
             </div>
           )}
