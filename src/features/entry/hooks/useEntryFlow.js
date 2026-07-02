@@ -4,7 +4,7 @@ import { uploadPhoto } from '../utils/uploadPhoto';
 import { resolveNominationFormConfig } from '../../../utils/nominationFormDefaults';
 
 // Columns added by later migrations — strip if migration hasn't run yet
-const NEW_COLUMNS = ['city', 'flow_stage', 'gender'];
+const NEW_COLUMNS = ['city', 'flow_stage', 'gender', 'birthdate'];
 
 function stripNewColumns(record) {
   const clean = { ...record };
@@ -90,6 +90,7 @@ export function useEntryFlow(competition, profile, options = {}) {
     phone: profile?.phone || '',
     instagram: profile?.instagram || '',
     age: profile?.age || '',
+    birthdate: profile?.birthdate || '',
     location: profile?.city || '',
     photoFile: null,
     photoPreview: profile?.avatar_url || '',
@@ -204,6 +205,7 @@ export function useEntryFlow(competition, profile, options = {}) {
           phone: existingNominee.phone || prev.phone,
           instagram: existingNominee.instagram || prev.instagram,
           age: existingNominee.age ? String(existingNominee.age) : prev.age,
+          birthdate: existingNominee.birthdate || prev.birthdate,
           location: existingNominee.city || prev.location,
           photoPreview: existingNominee.avatar_url || prev.photoPreview,
           bio: existingNominee.bio || prev.bio,
@@ -283,6 +285,7 @@ export function useEntryFlow(competition, profile, options = {}) {
         phone: prev.phone || profile.phone || '',
         instagram: prev.instagram || profile.instagram || '',
         age: prev.age || profile.age || '',
+        birthdate: prev.birthdate || profile.birthdate || '',
         location: prev.location || profile.city || '',
         photoPreview: prev.photoPreview || profile.avatar_url || '',
       }));
@@ -360,6 +363,7 @@ export function useEntryFlow(competition, profile, options = {}) {
         phone: selfData.phone?.trim() || null,
         instagram: selfData.instagram?.trim() || null,
         age: selfData.age ? parseInt(selfData.age, 10) : null,
+        birthdate: selfData.birthdate || null,
         city: selfData.location?.trim() || null,
         gender: selfData.gender || null,
         avatar_url: avatarUrl || null,
@@ -382,6 +386,7 @@ export function useEntryFlow(competition, profile, options = {}) {
           phone: record.phone,
           instagram: record.instagram,
           age: record.age,
+          birthdate: record.birthdate,
           city: record.city,
           gender: record.gender,
           avatar_url: record.avatar_url,
@@ -475,6 +480,7 @@ export function useEntryFlow(competition, profile, options = {}) {
         bio: selfData.bio.trim() || null,
         avatar_url: avatarUrl || null,
         age: selfData.age ? parseInt(selfData.age, 10) : null,
+        birthdate: selfData.birthdate || null,
         city: selfData.location?.trim() || null,
         gender: selfData.gender || null,
         // Anon users still need the password step — set 'bio' so resume
@@ -546,6 +552,7 @@ export function useEntryFlow(competition, profile, options = {}) {
         if (selfData.bio?.trim()) profileUpdate.bio = selfData.bio.trim();
         if (selfData.location?.trim()) profileUpdate.city = selfData.location.trim();
         if (selfData.age) profileUpdate.age = parseInt(selfData.age, 10);
+        if (selfData.birthdate) profileUpdate.birthdate = selfData.birthdate;
         if (selfData.instagram?.trim()) profileUpdate.instagram = selfData.instagram.trim();
 
         const { error: profileErr } = await supabase
@@ -700,6 +707,7 @@ export function useEntryFlow(competition, profile, options = {}) {
             bio: selfData.bio?.trim() || null,
             city: selfData.location?.trim() || null,
             age: selfData.age ? parseInt(selfData.age, 10) : null,
+            birthdate: selfData.birthdate || null,
             instagram: selfData.instagram?.trim() || null,
             phone: selfData.phone?.trim() || null,
             onboarded_at: new Date().toISOString(),
@@ -877,6 +885,7 @@ export function useEntryFlow(competition, profile, options = {}) {
           phone: prev.phone || profileData.phone || '',
           instagram: prev.instagram || profileData.instagram || '',
           age: prev.age || (profileData.age ? String(profileData.age) : ''),
+          birthdate: prev.birthdate || profileData.birthdate || '',
           location: prev.location || profileData.city || '',
           photoPreview: prev.photoPreview || profileData.avatar_url || '',
           bio: prev.bio || profileData.bio || '',

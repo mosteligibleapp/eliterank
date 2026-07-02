@@ -105,9 +105,6 @@ export default function BuildCardDetailsStep({
         {data.birthdate && derivedAge != null && derivedAge < 18 && (
           <p className="entry-hint">You must be at least 18 to enter.</p>
         )}
-        {data.birthdate && derivedAge != null && derivedAge >= 18 && (
-          <p className="entry-hint">Age: {derivedAge}</p>
-        )}
       </div>
 
       <div className="entry-form-field">
@@ -139,10 +136,6 @@ export default function BuildCardDetailsStep({
           />
         </div>
       </div>
-
-      {!hasEmail && (
-        <p className="entry-hint">Email is required</p>
-      )}
 
       <div className="entry-form-field">
         <label className="entry-label">Instagram *</label>
